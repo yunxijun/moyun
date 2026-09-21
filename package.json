@@ -1,0 +1,24 @@
+{
+  "name": "moyun",
+  "private": true,
+  "description": "墨韵 — AI 诗词书法卡片生成器",
+  "version": "0.1.0",
+  "scripts": {
+    "dev:uni": "pnpm --filter @moyun/uni run dev:h5",
+    "dev:mp-weixin": "pnpm --filter @moyun/uni run dev:mp-weixin",
+    "dev:server": "pnpm --filter @moyun/server run dev",
+    "dev:web": "pnpm --filter @moyun/web run dev",
+    "build:h5": "pnpm --filter @moyun/uni run build:h5",
+    "build:mp-weixin": "pnpm --filter @moyun/uni run build:mp-weixin",
+    "build:mp-toutiao": "pnpm --filter @moyun/uni run build:mp-toutiao",
+    "build:mp-xhs": "pnpm --filter @moyun/uni run build:mp-xhs",
+    "build:server": "pnpm --filter @moyun/server run build",
+    "build:web": "pnpm --filter @moyun/web run build",
+    "lint": "oxlint .",
+    "clean": "pnpm -r exec rm -rf node_modules dist"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=10.0.0"
+  }
+}
