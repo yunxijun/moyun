@@ -1,0 +1,127 @@
+@wcex/cn-fontsource
+cn-fontsource tools
+Version 1.0.37 published 2023-02-28 by zhfjyq
+Maintainers: zhfjyq
+https://npm.im/@wcex/cn-fontsource
+
+cn-fontsource-xiaolai-sc-regular
+鏈瓧浣撴槸 婵戞埛瀛椾綋 鐨勭畝浣撲腑鏂囧寲鏀硅壇锛屽埄鐢ㄦ繎鎴峰瓧浣撻噷鍘熸湁鐨勯儴浠讹紝瀵瑰師瀛椾綋涓己灏戠殑姹夊瓧杩涜琛ヨ冻锛屼富瑕佷负 GB2312 鍙娿€婇€氱敤瑙勮寖姹夊瓧琛ㄣ€嬮噷鐨勬眽瀛楋紝鍏朵綑鐨勬眽瀛椼€佽皻鏂囥€佺壒娈婄鍙风敤 cjkFonts 鍏ㄦ繎浣?琛ュ叏銆傜幇鏈?CJK 鍩烘湰鍖烘眽瀛?20949 涓紝鎵╁睍 A 鍖烘眽瀛?6582 涓紝B 鍖烘眽瀛?368 涓紝C 鍖烘眽瀛?44 涓紝D 鍖烘眽瀛?9 涓紝E 鍖烘眽瀛?108 涓紝F 鍖烘眽瀛?1 涓紙銆岄煛銆嶇殑绠€浣撳瓧銆岎碉紙U+2E9F5锛夈€嶏級锛孏 鍖烘眽瀛?2 涓紙bi谩ng 瀛楃殑绠€绻佷綋銆岎盎濄€嶏紙U+30EDD锛夈€岎盎?Version 1.0.2 published 2023-02-27 by zhfjyq
+Maintainers: zhfjyq
+Keywords: cn cnfont cn-font fontsource 灏忚禆瀛椾綋
+https://npm.im/cn-fontsource-xiaolai-sc-regular
+
+cn-fontsource-yozai-regular
+鏈瓧浣撴槸涓€娆惧熀浜?Y.OzFont 鐨勬墜鍐欓鏍肩殑瀛椾綋銆傚埄鐢ㄥ師瀛椾綋涓凡鏈夌殑绗斿垝鍜岄儴浠讹紝閫氳繃鎷兼帴鍜岃皟鏁撮€犲嚭鏂板瓧
+Version 1.0.9 published 2023-02-27 by zhfjyq
+Maintainers: zhfjyq
+Keywords: cn cnfont cn-font fontsource 鎮犲搲瀛椾綋
+https://npm.im/cn-fontsource-yozai-regular
+
+cn-fontsource-smiley-sans-oblique-regular
+杩欐槸鎴戜互oooooohmygosh韬唤鍙戝竷鐨勭涓€娆惧瓧浣擄紝11鏈?5鏃ユ寮忓紑婧愬彂甯冿紝澶у鍙互鍏嶈垂鍟嗙敤鏃犱换浣曢檺鍒讹紝涔熷彲浠ヤ慨鏀瑰垱浣溿€傝涓笉澶垏瀹為檯鐨勬ⅵ鎯筹紝鎴戝笇鏈涗互杩欎釜韬唤鍙戝竷鐨勬墍鏈変綔鍝侊紝閮芥槸寮€婧愭垨鑰呭叕鐩婄殑銆?杩欏瀛楃粡杩囨垜鍜屽叾浠栧瓧浣撹璁″笀浼欎即浠竴骞村鐨勬尝鎶橈紝缁堜簬瑕侀潰涓栦簡銆傝繖娆惧瓧铏界劧鏄編鏈瓧锛屼絾鍗存槸涓€涓湁鎸戞垬鐨勫懡棰樸€傚洜涓哄畠鏈変笁涓壒寰併€屽ぇ寮х嚎銆佺獎銆佹枩銆嶏紝姣忎竴椤归兘寰堥毦鍋氬ソ銆傛洿浣曞喌鎶婂畠浠花铻嶅悎鍒颁簡涓€璧凤紝杩樿鍘昏拷姹傜ǔ銆佸寑銆佹暣鈥︹€?Version 1.0.1 published 2023-02-27 by zhfjyq
+Maintainers: zhfjyq
+Keywords: cn cnfont cn-font fontsource 寰楁剰榛?https://npm.im/cn-fontsource-smiley-sans-oblique-regular
+
+cn-fontsource-975-maru-sc-regular
+鍩轰簬鎬濇簮榛戜綋/鐙熬鍦嗕綋鐨勭缉灏忓瓧闈腑鏂囧瓧浣?Version 1.0.1 published 2023-02-28 by zhfjyq
+Maintainers: zhfjyq
+Keywords: cn cnfont cn-font fontsource 975鍦嗕綋
+https://npm.im/cn-fontsource-975-maru-sc-regular
+
+cn-fontsource-ding-talk-jin-bu-ti-regular
+閽夐拤鍝佺墝瀛楀簱 鏇村叿浜烘枃娓╁害鐨勫厤璐瑰晢鐢ㄥ瓧浣?Version 1.0.3 published 2023-02-27 by zhfjyq
+Maintainers: zhfjyq
+Keywords: cn cnfont cn-font fontsource 閽夐拤杩涙浣?https://npm.im/cn-fontsource-ding-talk-jin-bu-ti-regular
+
+cn-fontsource-hongleixingshu-regular
+鍥犱负澶棽浜嗭紝涓ゅ勾鍚庢垜鍙堝啓浜嗕竴濂楀厤璐瑰瓧浣擄紒
+Version 1.0.7 published 2023-02-25 by zhfjyq
+Maintainers: zhfjyq
+Keywords: cn cnfont cn-font fontsource 楦块浄琛屼功绠€浣?https://npm.im/cn-fontsource-hongleixingshu-regular
+
+cn-fontsource-alimama-dong-fang-da-kai-regular
+鍩轰簬棰滅湡鍗垮瀹濆纰戠畻娉曠敓鎴愮殑鍏嶈垂鍟嗙敤瀛楀簱
+Version 1.0.3 published 2023-02-26 by zhfjyq
+Maintainers: zhfjyq
+Keywords: cn cnfont cn-font fontsource 闃块噷濡堝涓滄柟澶фシ
+https://npm.im/cn-fontsource-alimama-dong-fang-da-kai-regular
+
+cn-fontsource-lxgw-wen-kai-screen
+鏈瓧浣撴槸 闇為箿鏂囨シ 鐨勫睆骞曡垝閫傞槄璇荤増鏈€傜敱浜庡師鐗堛€岄湠楣滄枃妤枫€峈egular 瀛楅噸鍦?PC 鍜?Android 灞忓箷涓婃樉绀鸿緝缁嗭紝灏嗗師鐗堛€岄湠楣滄枃妤?Bold銆嶇殑瀛楅噸灞炴€ф敼涓?Regular锛岃皟鏁村害閲忔暟鎹笌 Android 榛樿瀛椾綋 Roboto 鐩稿悓锛屾洿閫傚悎 PC 鍙?Android 鎵嬫満灞忓箷鏄剧ず
+LXGWWenKaiScreen.ttf锛?浣跨敤鏂囨シ瀹屾暣鐗堝瓧搴擄紝涓嶄互鍏朵粬浠讳綍瀛椾綋鎵撳簳銆?LXGWWenKaiScreenR.ttf锛?鍦ㄦ枃妤峰畬鏁寸増瀛楀簱鐨勫熀纭€涓婏紝浣跨敤 Roboto 鎵撳簳琛ュ叏缂哄け鐨勫瓧绗︼紝閫傚悎鏈?Roo
+Version 1.0.6 published 2023-02-25 by zhfjyq
+Maintainers: zhfjyq
+Keywords: cn cnfont cn-font fontsource 闇為箿鏂囨シ灞忓箷闃呰鐗?https://npm.im/cn-fontsource-lxgw-wen-kai-screen
+
+cn-fontsource-hanazome-font-regular
+涓€娆惧彲鐖辩殑鎵嬪啓鏃ユ枃鍏嶈垂瀛椾綋
+Version 1.0.3 published 2023-02-27 by zhfjyq
+Maintainers: zhfjyq
+Keywords: cn cnfont cn-font fontsource 鑺变腑瀛椾綋
+https://npm.im/cn-fontsource-hanazome-font-regular
+
+cn-fontsource-fz-kai-z-03-regular
+鏂规妤蜂綋绠€浣擄細濂戒技鍏拌姳涓嶅涓嶆煍 鐣欎笅娓呴娌佷汉蹇冭劸
+Version 1.0.1 published 2023-02-25 by zhfjyq
+Maintainers: zhfjyq
+Keywords: cn cnfont cn-font fontsource 鏂规妤蜂綋
+https://npm.im/cn-fontsource-fz-kai-z-03-regular
+
+@fontsource-variable/inter
+Self-host the Inter font in a neatly bundled NPM package.
+Version 5.3.0 published 2026-07-19 by lotusdevshack
+Maintainers: jwr1 lotusdevshack
+Keywords: fontsource font font family google fonts inter Inter css sass front-end web typeface variable
+https://npm.im/@fontsource-variable/inter
+
+cn-fontsource-975-maru-sc-medium-regular
+鍩轰簬鎬濇簮榛戜綋/鐙熬鍦嗕綋鐨勭缉灏忓瓧闈腑鏂囧瓧浣?Version 1.0.1 published 2023-02-28 by zhfjyq
+Maintainers: zhfjyq
+Keywords: cn cnfont cn-font fontsource 975鍦嗕綋
+https://npm.im/cn-fontsource-975-maru-sc-medium-regular
+
+cn-fontsource-source-han-sans-sc-vf
+鎬濇簮榛戜綋: 浠呭寘鍚畝浣撶殑鎬濇簮榛戜綋锛屽彲鎻愬崌鍔犺浇閫熷害
+Version 1.0.10 published 2023-02-24 by zhfjyq
+Maintainers: zhfjyq
+https://npm.im/cn-fontsource-source-han-sans-sc-vf
+
+@fontsource/inter
+Self-host the Inter font in a neatly bundled NPM package.
+Version 5.3.0 published 2026-07-19 by lotusdevshack
+Maintainers: jwr1 lotusdevshack
+Keywords: fontsource font font family google fonts inter Inter css sass front-end web typeface variable
+https://npm.im/@fontsource/inter
+
+cn-fontsource-slideyouran-regular
+濡傞潚绔规柊鐢?闇叉嫏鏈翠箣姘?鍏嶈垂鍟嗙敤娓呮柊姣涚瑪浣?Version 1.0.3 published 2023-02-26 by zhfjyq
+Maintainers: zhfjyq
+Keywords: cn cnfont cn-font fontsource 婕旂ず鎮犵劧灏忔シ
+https://npm.im/cn-fontsource-slideyouran-regular
+
+@fontsource-variable/geist
+Self-host the Geist font in a neatly bundled NPM package.
+Version 5.3.0 published 2026-07-19 by lotusdevshack
+Maintainers: jwr1 lotusdevshack
+Keywords: fontsource font font family google fonts geist Geist css sass front-end web typeface variable
+https://npm.im/@fontsource-variable/geist
+
+cn-fontsource-slideqiuhong-regular
+銆屾紨绀虹楦挎シ銆嶇殑瀛楃浣滆€呮槸涓€浣嶉珮涓暀甯堝垬閿℃爧锛?8骞村姞鍏ュ啘姘戜功鐢诲鍗忎細锛屽苟鐢盞eynote鐮旂┒鎵€鐨勪汉鐢熷摜杩涜鍗婅嚜鍔ㄦ祦绋嬪瓧绋垮埗浣滐紝骞跺悜鍏ㄧぞ浼氬彂甯冨厤璐瑰彲鍟嗙敤
+Version 1.0.6 published 2023-02-25 by zhfjyq
+Maintainers: zhfjyq
+Keywords: cn cnfont cn-font fontsource 婕旂ず绉嬮缚妤?https://npm.im/cn-fontsource-slideqiuhong-regular
+
+cn-fontsource-maoken-zhuyuan-ti-regular
+涓€娆惧彲鐖辩殑鏍囬瀛椾綋 鍩轰簬榫欑彔浣撹繘琛屽渾娑﹁皟鏁?鍏嶈垂鍟嗙敤
+Version 1.0.1 published 2023-02-25 by zhfjyq
+Maintainers: zhfjyq
+Keywords: cn cnfont cn-font fontsource 鐚晝鐝犲渾浣?https://npm.im/cn-fontsource-maoken-zhuyuan-ti-regular
+
+@fontsource/ibm-plex-mono
+Self-host the IBM Plex Mono font in a neatly bundled NPM package.
+Version 5.3.0 published 2026-07-19 by lotusdevshack
+Maintainers: jwr1 lotusdevshack
+Keywords: fontsource font font family google fonts ibm-plex-mono IBM Plex Mono css sass front-end web typeface variable
+https://npm.im/@fontsource/ibm-plex-mono
+

@@ -17,8 +17,18 @@ export type PoemStyle =
   | '古朴'
   | '自动'
 
-/** 书法书体 */
+/** 书法书体（五体 + 扩展） */
 export type CalligraphyScript = '楷' | '行' | '草'
+
+/** 字体书体分类 */
+export type FontScriptType =
+  | '篆'   // Seal Script
+  | '隶'   // Clerical Script
+  | '楷'   // Regular Script
+  | '行'   // Semi-cursive
+  | '草'   // Cursive
+  | '手写'  // Handwriting
+  | '宋楷'  // Song-Kai hybrid
 
 /** 书法家 */
 export type Calligrapher =
@@ -31,12 +41,19 @@ export type Calligrapher =
   | '赵孟頫'
   | null
 
-/** 书法字体（MVP 阶段使用） */
+/** 书法字体 */
 export type CalligraphyFont =
-  | 'MaShanZheng'   // 飘逸行书
-  | 'LiuJianMaoCao' // 灵动草书
-  | 'ZhiMangXing'   // 秀丽行书
-  | 'LongCang'      // 雄浑毛笔
+  | 'MaShanZheng'        // 飘逸行书
+  | 'LiuJianMaoCao'      // 灵动草书
+  | 'ZhiMangXing'        // 秀丽行书
+  | 'LongCang'           // 雄浑毛笔
+  | 'LxgwWenKai'         // 霞鹜文楷（人文楷书）
+  | 'SlideYouRan'        // 演示悠然小楷
+  | 'SlideQiuHong'       // 演示秋鸿楷
+  | 'HongLeiXingShu'     // 鸿雷行书
+  | 'DongFangDaKai'      // 阿里妈妈东方大楷
+  | 'ZcoolXiaoWei'       // 站酷小薇（温润宋楷）
+  | 'DaoLiTi'            // 阿里妈妈刀隶体（隶书）
 
 /** AI 生成的诗词结果 */
 export interface PoemResult {
@@ -108,12 +125,28 @@ export type CardTemplate =
   | 'square'      // 方形（1:1）
   | 'poem-sign'   // 诗签（细长竖条）
 
-/** 卡片背景类型 */
+/** 纸张分类 */
+export type PaperCategory = '宣纸' | '竹纸' | '特种纸' | '现代'
+
+/** 卡片背景类型（基于真实纸张） */
 export type CardBackground =
-  | 'xuan-paper'       // 宣纸米色
-  | 'xuan-paper-warm'  // 宣纸暖白
-  | 'xuan-paper-aged'  // 宣纸古铜
-  | 'dark-ink'         // 深色墨色
+  // 宣纸类
+  | 'sheng-xuan'       // 生宣
+  | 'shu-xuan'         // 熟宣
+  | 'ban-sheng-shu'    // 半生熟宣
+  | 'fang-gu-xuan'     // 仿古宣
+  | 'sa-jin-xuan'      // 洒金宣
+  | 'chan-yi-xuan'      // 蝉翼宣
+  // 竹纸类
+  | 'mao-bian-zhi'     // 毛边纸
+  | 'yuan-shu-zhi'     // 元书纸
+  // 特种纸
+  | 'cang-jing-zhi'    // 藏经纸（金粟山藏经纸）
+  | 'cheng-xin-tang'   // 澄心堂纸
+  | 'xue-tao-jian'     // 薛涛笺
+  | 'hua-jian'         // 花笺
+  // 现代
+  | 'mo-zhi'           // 墨纸（深色反白）
   | 'custom-photo'     // 用户照片背景
 
 /** 卡片配置 */

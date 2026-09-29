@@ -52,15 +52,38 @@
    - MEDIA_PLAN.md — 自媒体运营计划
    - REPO_STRUCTURE.md — Monorepo 目录结构设计
 
+7. **Monorepo 项目初始化完成**
+   - pnpm workspace + 4 个包（core / uni / server / docs）
+   - Git 初始化，首次提交 51 个文件
+
+8. **uni-app 跨端应用骨架完成**
+   - 5 个页面：首页(创作) / 结果 / 卡片编辑 / 发现 / 我的
+   - TabBar 导航、宣纸色系 UI、图片上传组件
+   - H5 开发服务器已启动: http://localhost:5173/
+
+9. **后端 API 骨架完成**（Hono.js）
+   - POST /api/poem/generate — 文字→诗词
+   - POST /api/poem/from-image — 图片+文字→诗词（多模态）
+   - POST /api/calligraphy/render — 书法渲染
+   - GET /api/user/profile — 用户信息
+   - LLM 调用封装（DeepSeek，兼容 OpenAI SDK）
+
+10. **核心业务逻辑包完成**（@moyun/core）
+    - 完整 TypeScript 类型定义
+    - 诗词 System Prompt（绝句/律诗/图片作诗/对联）
+    - Prompt Builder（支持体裁/风格/藏头诗参数化构建）
+    - 书法字体配置（4 种 Google Fonts）
+    - 书法家数据（王羲之/颜真卿/欧阳询/瘦金体等 7 位）
+    - 卡片模板 & 背景配置
+    - 平台无关的 API 客户端
+
 #### 🔄 进行中
-- 准备初始化 Monorepo 项目
+- Phase 1: 接通 LLM API，实现诗词生成闭环
 
 #### ⏳ 下一步
-- 初始化 pnpm Monorepo 项目
-- 搭建 uni-app 骨架
-- 搭建后端 API 骨架
-- 编写并测试诗词 System Prompt
-- 准备书法字体资源
+- 配置 DeepSeek API Key，启动后端服务
+- 前端对接后端 API，跑通「输入主题 → 生成诗词 → 展示结果」
+- 准备书法字体资源（下载 Google Fonts）
 
 ---
 
@@ -68,7 +91,7 @@
 
 | Phase | 状态 | 进度 |
 |---|---|---|
-| Phase 0: 项目初始化 | 🔄 进行中 | ████████░░ 80% |
+| Phase 0: 项目初始化 | ✅ 完成 | ██████████ 100% |
 | Phase 1: AI诗词引擎 | ⏳ 未开始 | ░░░░░░░░░░ 0% |
 | Phase 2: 书法渲染 | ⏳ 未开始 | ░░░░░░░░░░ 0% |
 | Phase 2.5: 真实书法家 | ⏳ 未开始 | ░░░░░░░░░░ 0% |

@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
@@ -10,12 +11,14 @@ const app = new Hono()
 
 app.use('*', logger())
 app.use('*', cors({
-  origin: [
-    'http://localhost:5173',      // uni-app H5 dev
-    'http://localhost:3000',      // Nuxt dev
-    'https://moyun.art',          // 生产域名
-    'https://www.moyun.art',
-  ],
+  origin: (origin) => {
+    if (!origin) return 'http://localhost:5173'
+    // 本地开发：允许所有 localhost 端口
+    if (origin.startsWith('http://localhost:')) return origin
+    // 生产域名
+    if (origin.endsWith('moyun.art')) return origin
+    return 'http://localhost:5173'
+  },
 }))
 
 app.get('/', (c) => c.json({

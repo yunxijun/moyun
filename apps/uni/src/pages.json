@@ -3,59 +3,43 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "墨韵",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "navigationBarTitleText": ""
       }
     },
     {
       "path": "pages/result/result",
       "style": {
-        "navigationBarTitleText": "诗词结果"
+        "navigationStyle": "custom",
+        "navigationBarTitleText": ""
       }
     },
     {
       "path": "pages/card/card",
       "style": {
-        "navigationBarTitleText": "卡片编辑"
+        "navigationStyle": "custom",
+        "navigationBarTitleText": ""
       }
     },
     {
       "path": "pages/discover/discover",
       "style": {
-        "navigationBarTitleText": "发现"
+        "navigationStyle": "custom",
+        "navigationBarTitleText": ""
       }
     },
     {
       "path": "pages/mine/mine",
       "style": {
-        "navigationBarTitleText": "我的"
+        "navigationStyle": "custom",
+        "navigationBarTitleText": ""
       }
     }
   ],
   "globalStyle": {
+    "navigationStyle": "custom",
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "墨韵",
-    "navigationBarBackgroundColor": "#f5f0e8",
-    "backgroundColor": "#f5f0e8"
-  },
-  "tabBar": {
-    "color": "#888888",
-    "selectedColor": "#1a1a1a",
-    "backgroundColor": "#f5f0e8",
-    "borderStyle": "black",
-    "list": [
-      {
-        "pagePath": "pages/index/index",
-        "text": "创作"
-      },
-      {
-        "pagePath": "pages/discover/discover",
-        "text": "发现"
-      },
-      {
-        "pagePath": "pages/mine/mine",
-        "text": "我的"
-      }
-    ]
+    "navigationBarTitleText": "",
+    "backgroundColor": "#faf8f3"
   }
 }

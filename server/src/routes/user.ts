@@ -1,25 +1,45 @@
 import { Hono } from 'hono'
-import type { UserProfile, ApiResponse } from '@moyun/core'
+import type { ApiResponse } from '@moyun/core'
+import { getUserHistory, getUserStats, getFeaturedPoems } from '../lib/history'
+import { getQuotaInfo } from '../lib/quota'
 
 export const userRoutes = new Hono()
 
-/**
- * GET /api/user/profile
- * 获取用户信息
- */
-userRoutes.get('/profile', async (c) => {
-  // TODO: 从数据库获取用户信息，根据 JWT token 鉴权
-  const mockProfile: UserProfile = {
-    id: 'guest',
-    nickname: '墨客',
-    membership: 'free',
-    dailyUsed: 0,
-    dailyLimit: 3,
-    totalCreations: 0,
-  }
+function getUserId(c: any): string {
+  return c.req.header('x-visitor-id') || 'anonymous'
+}
 
-  return c.json<ApiResponse<UserProfile>>({
+/** GET /api/user/profile — 用户信息 + 统计 */
+userRoutes.get('/profile', async (c) => {
+  const userId = getUserId(c)
+  const stats = getUserStats(userId)
+  const quota = getQuotaInfo(userId)
+
+  return c.json({
     success: true,
-    data: mockProfile,
+    data: {
+      id: userId,
+      nickname: '墨客',
+      membership: 'free',
+      stats,
+      quota,
+    },
   })
+})
+
+/** GET /api/user/history — 生成历史 */
+userRoutes.get('/history', async (c) => {
+  const userId = getUserId(c)
+  const page = Number(c.req.query('page')) || 1
+  const result = getUserHistory(userId, page)
+
+  return c.json({ success: true, data: result })
+})
+
+/** GET /api/user/featured — 精选作品（公开） */
+userRoutes.get('/featured', async (c) => {
+  const page = Number(c.req.query('page')) || 1
+  const result = getFeaturedPoems(page)
+
+  return c.json({ success: true, data: result })
 })

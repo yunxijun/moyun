@@ -2,7 +2,7 @@
   <view class="page">
     <text class="page-title">卡片编辑</text>
     <view class="placeholder">
-      <text class="placeholder-icon">🖌️</text>
+      <text class="placeholder-icon calligraphy">编</text>
       <text class="placeholder-text">卡片编辑功能开发中</text>
     </view>
   </view>
