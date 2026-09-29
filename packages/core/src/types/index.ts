@@ -133,6 +133,12 @@ export interface CalligraphyRenderResult {
   method: 'font' | 'unicalli'
 }
 
+/** 印章形状 */
+export type StampShape =
+  | 'square'      // 方形（白文印/朱文印）
+  | 'round'       // 圆形（圆朱文）
+  | 'oval'        // 椭圆（长圆印）
+
 /** 卡片模板类型 */
 export type CardTemplate =
   | 'vertical'    // 竖版（3:4）

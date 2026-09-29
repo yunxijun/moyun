@@ -397,6 +397,20 @@
                   <text class="ink-field-label">印径</text>
                   <slider class="ink-slider" :value="stampSizeVal" :min="30" :max="120" :step="2" activeColor="#5b7f95" backgroundColor="rgba(26,26,46,0.1)" block-size="14" @changing="(e: any) => stampSizeVal = e.detail.value" @change="(e: any) => stampSizeVal = e.detail.value" />
                 </view>
+                <view class="ink-field">
+                  <text class="ink-field-label">印形</text>
+                  <view class="stamp-shape-row">
+                    <view
+                      v-for="(info, key) in STAMP_SHAPES"
+                      :key="key"
+                      class="stamp-shape-btn"
+                      :class="{ active: stampShape === key }"
+                      @tap="stampShape = key"
+                    >
+                      <text class="stamp-shape-label">{{ info.label }}</text>
+                    </view>
+                  </view>
+                </view>
               </view>
             </view>
 
@@ -432,7 +446,7 @@
           </view>
 
           <view class="poem-header">
-            <view class="poem-title">《{{ poem.title }}》</view>
+            <view class="poem-title">{{ poem.title }}</view>
             <view class="poem-meta">
               <text class="poem-genre">{{ poem.genre }}</text>
               <text v-if="poem.rhyme" class="poem-rhyme">{{ poem.rhyme }}</text>
@@ -514,6 +528,7 @@ import {
   TEXTURE_INTENSITIES,
   STAMP_POSITIONS,
   STAMP_FONTS,
+  STAMP_SHAPES,
   CALLIGRAPHERS,
   CALLIGRAPHY_SCRIPTS,
   getFontsByScript,
@@ -1671,6 +1686,7 @@ async function init3DScene() {
 
 const stampText = ref('墨韵')
 const stampSizeVal = ref(56)
+const stampShape = ref('square')
 const stampPosition = ref<StampPosition>('bottom-left')
 
 // 落款
@@ -1720,7 +1736,7 @@ const colophonPreviewLines = computed(() => {
   }
   return lines
 })
-const stampFontKey = ref('simsun')
+const stampFontKey = ref('xiaozhuan')
 const stampFontKeys = Object.keys(STAMP_FONTS)
 const stampX = ref<number | undefined>(undefined)
 const stampY = ref<number | undefined>(undefined)
@@ -1843,6 +1859,7 @@ function buildRenderOptions() {
     offsetX: offsetX.value,
     offsetY: offsetY.value,
     stampSize: stampSizeVal.value,
+    stampShape: stampShape.value,
     backgroundImage: bgImage.value,
     customWidth: customWidth.value || undefined,
     customHeight: customHeight.value || undefined,
@@ -1851,8 +1868,44 @@ function buildRenderOptions() {
   }
 }
 
+async function ensureStampFontReady(): Promise<void> {
+  const fontKey = stampFontKey.value
+  const fontInfo = STAMP_FONTS[fontKey]
+  if (!fontInfo || !document.fonts) return
+
+  // 从 font-family 字符串中提取第一个字体名
+  const family = fontInfo.family.split(',')[0].replace(/['"]/g, '').trim()
+  if (loadedFontFamilies.has('stamp_' + family)) return
+
+  // 自托管字体 → FontFace API
+  const url = SELF_HOSTED_FONTS[family]
+  if (url) {
+    try {
+      const face = new FontFace(family, `url(${url})`, { style: 'normal', weight: 'normal', display: 'swap' })
+      const loaded = await face.load()
+      document.fonts.add(loaded)
+      loadedFontFamilies.add('stamp_' + family)
+      console.log(`[StampFont] ✅ ${fontInfo.label} (${family}) loaded via FontFace`)
+    } catch (e) {
+      console.warn(`[StampFont] ⚠️ ${fontInfo.label} FontFace failed:`, e)
+    }
+    return
+  }
+
+  // CSS @font-face 字体 → 触发加载并等待
+  try {
+    await document.fonts.load(`48px "${family}"`, stampText.value || '墨韵')
+    await document.fonts.ready
+    loadedFontFamilies.add('stamp_' + family)
+    console.log(`[StampFont] ✅ ${fontInfo.label} (${family}) loaded via CSS`)
+  } catch (e) {
+    console.warn(`[StampFont] ⚠️ ${fontInfo.label} CSS load failed:`, e)
+  }
+}
+
 async function renderCard() {
   await ensureFontReady(currentFont.value)
+  await ensureStampFontReady()
 
   const tmpl = CARD_TEMPLATES[currentTmpl.value]
   const realW = customWidth.value || tmpl.width
@@ -1943,7 +1996,7 @@ onMounted(async () => {
 })
 
 watch(
-  [currentFont, currentBg, currentTmpl, currentBorder, currentTexture, currentTextureType, textureStrength, fontScale, stampText, stampSizeVal, stampPosition, stampFontKey, stampX, stampY, offsetX, offsetY, previewScale, colophonCalligrapher, colophonVerb, colophonShowDate, colophonOffsetX, colophonOffsetY, colophonLayout, colSpacingScale, charSpacingScale, customWidth, customHeight],
+  [currentFont, currentBg, currentTmpl, currentBorder, currentTexture, currentTextureType, textureStrength, fontScale, stampText, stampSizeVal, stampShape, stampPosition, stampFontKey, stampX, stampY, offsetX, offsetY, previewScale, colophonCalligrapher, colophonVerb, colophonShowDate, colophonOffsetX, colophonOffsetY, colophonLayout, colSpacingScale, charSpacingScale, customWidth, customHeight, currentMount],
   async () => {
     await renderCard()
   },
@@ -3619,6 +3672,31 @@ $breakpoint: 768px;
   font-size: 10px;
   color: $color-mountain;
   white-space: nowrap;
+}
+
+.stamp-shape-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.stamp-shape-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--c-ink-12);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+  &:hover { border-color: var(--c-mountain); }
+  &.active {
+    border-color: $color-vermilion;
+    background: rgba(199, 62, 29, 0.08);
+    .stamp-shape-label { color: $color-vermilion; }
+  }
+}
+.stamp-shape-label {
+  font-family: $font-calligraphy;
+  font-size: 12px;
+  color: var(--c-ink-65);
+  letter-spacing: 1px;
 }
 
 .stamp-size-row {

@@ -9,6 +9,7 @@ export {
   TEXTURE_TYPES,
   STAMP_POSITIONS,
   STAMP_FONTS,
+  STAMP_SHAPES,
   type RenderOptions,
   type BorderStyle,
   type BorderInfo,

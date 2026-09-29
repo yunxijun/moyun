@@ -107,13 +107,20 @@ export const STAMP_POSITIONS: Record<StampPosition, { label: string }> = {
   'top-left': { label: '左上' },
 }
 
-/** 印章字体选项 */
+/** 印章形状选项 */
+export const STAMP_SHAPES: Record<string, { label: string; description: string }> = {
+  'square':  { label: '方印', description: '端正庄重，最传统的印章形制' },
+  'round':   { label: '圆印', description: '圆朱文，温润典雅' },
+  'oval':    { label: '椭圆', description: '长圆印，秀气舒展' },
+}
+
+/** 印章字体选项（篆隶优先） */
 export const STAMP_FONTS: Record<string, { label: string; family: string }> = {
+  'xiaozhuan': { label: '篆书', family: 'XiaoZhuan, "STXinwei", serif' },
+  'lishu': { label: '隶书', family: '"Alimama DaoLiTi", "STLiti", "LiSu", serif' },
   'simsun': { label: '宋体', family: '"SimSun", "STSong", serif' },
   'kaishu': { label: '楷体', family: '"STKaiti", "KaiTi", serif' },
-  'mashan': { label: '马山', family: '"Ma Shan Zheng", serif' },
-  'lishu': { label: '隶书', family: '"STLiti", "LiSu", serif' },
-  'fangsong': { label: '仿宋', family: '"STFangsong", "FangSong", serif' },
+  'mashan': { label: '行书', family: '"Ma Shan Zheng", serif' },
 }
 
 /** 渲染配置 */
@@ -173,6 +180,8 @@ export interface RenderOptions {
   offsetY?: number
   /** 印章尺寸（像素），默认 56 */
   stampSize?: number
+  /** 印章形状，默认 square */
+  stampShape?: string
   /** 自定义背景图（当 background 为 custom-photo 时），已加载的 Image 对象 */
   backgroundImage?: HTMLImageElement | null
 }
@@ -232,9 +241,9 @@ export function renderCalligraphyCard(
     : STAMP_FONTS['simsun'].family
 
   if (options.stampX !== undefined && options.stampY !== undefined) {
-    drawStamp(ctx, W, H, stamp, bg.stampColor, stampPosition, stampFontFamily, options.stampX, options.stampY, options.stampSize)
+    drawStamp(ctx, W, H, stamp, bg.stampColor, stampPosition, stampFontFamily, options.stampX, options.stampY, options.stampSize, options.stampShape)
   } else {
-    drawStamp(ctx, W, H, stamp, bg.stampColor, stampPosition, stampFontFamily, undefined, undefined, options.stampSize)
+    drawStamp(ctx, W, H, stamp, bg.stampColor, stampPosition, stampFontFamily, undefined, undefined, options.stampSize, options.stampShape)
   }
 
   // 6. 水印
@@ -1115,53 +1124,151 @@ function getStampCoords(
   }
 }
 
-/** 绘制印章 */
+/** 绘制印章（模拟真实钤印效果） */
 function drawStamp(
   ctx: CanvasRenderingContext2D,
   W: number, H: number,
   text: string,
   color: string,
   position: StampPosition = 'bottom-left',
-  fontFamily: string = '"SimSun", "STSong", serif',
+  fontFamily: string = 'XiaoZhuan, "STXinwei", serif',
   freeX?: number,
   freeY?: number,
   size?: number,
+  shape?: string,
 ): void {
   const stampSize = size ?? 56
-  // 自由坐标优先
+  const stampShape = shape ?? 'square'
   const { x, y } = (freeX !== undefined && freeY !== undefined)
     ? { x: freeX * W, y: freeY * H }
     : getStampCoords(W, H, position)
 
-  // 印章外框
-  ctx.strokeStyle = color
-  ctx.lineWidth = 2.5
-  ctx.globalAlpha = 0.85
-
-  // 方形印章
+  ctx.save()
   const half = stampSize / 2
-  ctx.strokeRect(x - half, y - half, stampSize, stampSize)
 
-  // 印章内文字
-  ctx.fillStyle = color
-  ctx.font = `bold ${stampSize * 0.4}px ${fontFamily}`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
+  // 用离屏 canvas 绘制印章，再叠加斑驳纹理
+  const offW = stampSize + 20
+  const offH = stampSize + 20
+  const off = document.createElement('canvas')
+  off.width = offW
+  off.height = offH
+  const oc = off.getContext('2d')!
+  const cx = offW / 2
+  const cy = offH / 2
 
-  const chars = [...text].slice(0, 4)
-  if (chars.length <= 2) {
-    // 单行排列
-    ctx.fillText(chars.join(''), x, y)
-  } else {
-    // 2×2 田字排列
-    const s = stampSize * 0.22
-    if (chars[0]) ctx.fillText(chars[0], x - s, y - s)
-    if (chars[1]) ctx.fillText(chars[1], x + s, y - s)
-    if (chars[2]) ctx.fillText(chars[2], x - s, y + s)
-    if (chars[3]) ctx.fillText(chars[3], x + s, y + s)
+  oc.fillStyle = color
+  oc.strokeStyle = color
+
+  // ── 绘制外框（带微抖动模拟刀刻痕迹） ──
+  oc.lineWidth = 2.5
+  const drawWobblyPath = (points: Array<[number, number]>, closed = true) => {
+    oc.beginPath()
+    const segs = 40
+    for (let i = 0; i < points.length; i++) {
+      const [ax, ay] = points[i]
+      const [bx, by] = points[(i + 1) % points.length]
+      if (!closed && i === points.length - 1) break
+      for (let j = 0; j <= segs; j++) {
+        const t = j / segs
+        const px = ax + (bx - ax) * t + (Math.random() - 0.5) * 1.2
+        const py = ay + (by - ay) * t + (Math.random() - 0.5) * 1.2
+        if (i === 0 && j === 0) oc.moveTo(px, py)
+        else oc.lineTo(px, py)
+      }
+    }
+    if (closed) oc.closePath()
+    oc.stroke()
   }
 
-  ctx.globalAlpha = 1.0
+  const drawWobblyArc = (cx: number, cy: number, rx: number, ry: number) => {
+    oc.beginPath()
+    const segs = 60
+    for (let i = 0; i <= segs; i++) {
+      const a = (i / segs) * Math.PI * 2
+      const jx = (Math.random() - 0.5) * 1.2
+      const jy = (Math.random() - 0.5) * 1.2
+      const px = cx + Math.cos(a) * rx + jx
+      const py = cy + Math.sin(a) * ry + jy
+      if (i === 0) oc.moveTo(px, py)
+      else oc.lineTo(px, py)
+    }
+    oc.closePath()
+    oc.stroke()
+  }
+
+  switch (stampShape) {
+    case 'round': {
+      const charCount = [...text].length
+      const r = charCount <= 2 ? half * 1.15 : half * 1.1
+      drawWobblyArc(cx, cy, r, r)
+      break
+    }
+    case 'oval': {
+      const charCount = [...text].length
+      const rx = charCount === 2 ? half * 0.7 : half * 0.85
+      const ry = charCount === 2 ? half * 1.2 : half * 1.1
+      drawWobblyArc(cx, cy, rx, ry)
+      break
+    }
+    default: {
+      const charCount = [...text].length
+      const hw = charCount === 2 ? half * 0.65 : half * 1.02
+      const hh = charCount === 2 ? half * 1.15 : half * 1.02
+      drawWobblyPath([
+        [cx - hw, cy - hh], [cx + hw, cy - hh],
+        [cx + hw, cy + hh], [cx - hw, cy + hh],
+      ])
+      break
+    }
+  }
+
+  // ── 印章内文字 ──
+  oc.fillStyle = color
+  oc.textAlign = 'center'
+  oc.textBaseline = 'middle'
+
+  const chars = [...text].slice(0, 4)
+  if (chars.length === 1) {
+    oc.font = `bold ${stampSize * 0.78}px ${fontFamily}`
+    oc.fillText(chars[0], cx, cy)
+  } else if (chars.length === 2) {
+    oc.font = `bold ${stampSize * 0.64}px ${fontFamily}`
+    const s = stampSize * 0.24
+    oc.fillText(chars[0], cx, cy - s)
+    oc.fillText(chars[1], cx, cy + s)
+  } else {
+    oc.font = `bold ${stampSize * 0.52}px ${fontFamily}`
+    const s = stampSize * 0.22
+    if (chars[0]) oc.fillText(chars[0], cx - s, cy - s)
+    if (chars[1]) oc.fillText(chars[1], cx + s, cy - s)
+    if (chars[2]) oc.fillText(chars[2], cx - s, cy + s)
+    if (chars[3]) oc.fillText(chars[3], cx + s, cy + s)
+  }
+
+  // ── 斑驳效果：随机擦除一些像素模拟印泥不均 ──
+  const imgData = oc.getImageData(0, 0, offW, offH)
+  const d = imgData.data
+  for (let i = 3; i < d.length; i += 4) {
+    if (d[i] > 0) {
+      // 边缘区域更容易斑驳
+      const px = ((i / 4) % offW) - cx
+      const py = Math.floor((i / 4) / offW) - cy
+      const dist = Math.sqrt(px * px + py * py) / half
+      const edgeFade = dist > 0.75 ? 0.3 : 0.08
+      if (Math.random() < edgeFade) {
+        d[i] = 0 // 擦除
+      } else {
+        // 轻微透明度变化
+        d[i] = Math.max(0, d[i] - Math.floor(Math.random() * 40))
+      }
+    }
+  }
+  oc.putImageData(imgData, 0, 0)
+
+  // ── 贴到主 canvas ──
+  ctx.globalAlpha = 0.88
+  ctx.drawImage(off, x - cx, y - cy)
+  ctx.restore()
 }
 
 /** 绘制水印（极淡，底部居中） */
