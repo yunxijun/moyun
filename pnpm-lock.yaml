@@ -73,6 +73,15 @@ importers:
       '@fontsource/ma-shan-zheng':
         specifier: ^5.3.1
         version: 5.3.1
+      '@fontsource/noto-serif-sc':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/zcool-kuaile':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/zcool-qingke-huangyou':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@fontsource/zcool-xiaowei':
         specifier: ^5.3.0
         version: 5.3.0
@@ -82,18 +91,33 @@ importers:
       '@types/three':
         specifier: ^0.186.0
         version: 0.186.0
+      cn-fontsource-975-maru-sc-regular:
+        specifier: ^1.0.1
+        version: 1.0.1
       cn-fontsource-alimama-dong-fang-da-kai-regular:
         specifier: ^1.0.3
         version: 1.0.3
       cn-fontsource-hongleixingshu-regular:
         specifier: ^1.0.7
         version: 1.0.7
+      cn-fontsource-long-zhu-ti-regular:
+        specifier: ^1.0.4
+        version: 1.0.4
+      cn-fontsource-slidefu-regular:
+        specifier: ^1.0.3
+        version: 1.0.3
       cn-fontsource-slideqiuhong-regular:
         specifier: ^1.0.6
         version: 1.0.6
       cn-fontsource-slideyouran-regular:
         specifier: ^1.0.3
         version: 1.0.3
+      cn-fontsource-xiaolai-mono-sc-regular:
+        specifier: ^1.0.3
+        version: 1.0.3
+      cn-fontsource-yozai-regular:
+        specifier: ^1.0.9
+        version: 1.0.9
       three:
         specifier: ^0.186.1
         version: 0.186.1
@@ -1228,6 +1252,15 @@ packages:
   '@fontsource/ma-shan-zheng@5.3.1':
     resolution: {integrity: sha512-cGGn7Yje2RSduXVxEk+rCfNZyD/T/7FMGj03LNPiK8TRL9Sing0tq1zJF3n+W29szPqgb2RNs5oIvmm+ikeI+Q==}
 
+  '@fontsource/noto-serif-sc@5.3.0':
+    resolution: {integrity: sha512-0/zaEFkidiWldE62rTeD74x8ygUsQvejiSNtO0LQxQk3qpaHnlMZ3w4C7yH80B4KTIg8VKeFP4oSgwWMchY9+g==}
+
+  '@fontsource/zcool-kuaile@5.3.0':
+    resolution: {integrity: sha512-jn4vpQ6QSVEckUn7uk5a9XcZMxEksTRqljmeE1VKRGMjGd6VoXdMyLGSdnTXSVwZLCCEHaIcm/2cdQuwvasJ9w==}
+
+  '@fontsource/zcool-qingke-huangyou@5.3.0':
+    resolution: {integrity: sha512-6/ld8x/knq1NjDQxLSyg9pDnBPOmtWDb30ZTFk+n8OxfkBoUvPAxh3aV/6+UFGmA5CekJfcgpUwd2/x/weLvSQ==}
+
   '@fontsource/zcool-xiaowei@5.3.0':
     resolution: {integrity: sha512-iRuUPl9ONFbYzi6JcEshpE4VedINyzQ4hv0Z5XEt0cB0pMPiQeqc2Qvv1NwJCNzkPwG02VCdcO+cF2K8ylYn2A==}
 
@@ -2202,17 +2235,32 @@ packages:
   cliui@7.0.4:
     resolution: {integrity: sha512-OcRE68cOsVMXp1Yvonl/fzkQOyjLSu/8bhPDfQt0e0/Eb283TKP20Fs2MqoPsr9SwA595rRCA+QMzYc9nBP+JQ==}
 
+  cn-fontsource-975-maru-sc-regular@1.0.1:
+    resolution: {integrity: sha512-tOj7WJfZqHYIS7qt+4taUP9EBFzm+BH6FIS8+UhyREh/swtemSJnYQFqViYZ/KkC8Rg5DPL5BRe6MK1XBEY3QA==}
+
   cn-fontsource-alimama-dong-fang-da-kai-regular@1.0.3:
     resolution: {integrity: sha512-uUh/MKS5qXVtorDtaNpfs2VrHC2UNrCQ6ZB99DgNjECywpgl4OMEt+lLgLNp+hQoVJLzT1KKHIG2lrWM7KtL5A==}
 
   cn-fontsource-hongleixingshu-regular@1.0.7:
     resolution: {integrity: sha512-5AnU20kXross2kfGlbt2R0IMWljwHxEDQaSUrVc4St13Y3mjrPeOQJOmGyY6VRX545q25DdAxgHcVIre09o1qQ==}
 
+  cn-fontsource-long-zhu-ti-regular@1.0.4:
+    resolution: {integrity: sha512-/e6rce61+OE8Yyppm1m8Vc7koDlmVvwRr9bt+nwUTSBgTfZZ7lNgH3iVmsFvqvL7d1XXitIab8EPhpdRLlD7eA==}
+
+  cn-fontsource-slidefu-regular@1.0.3:
+    resolution: {integrity: sha512-ktLxpYIszZ36v+ebcU150xHUGRe4N0EyVVVjKBNHSFDJbK+kl1/gz6TJiRsvwHGbmLcVk7F/nvhe2hnW1mWVTA==}
+
   cn-fontsource-slideqiuhong-regular@1.0.6:
     resolution: {integrity: sha512-4jS75Cj3u/nTS0b+Zlskj0bALeKxdo76FpR5mDgz+vluqX7++wHsONNjXkUUC4JFYKuhxlbrnpjH4hmMehekKw==}
 
   cn-fontsource-slideyouran-regular@1.0.3:
     resolution: {integrity: sha512-Q54mOAEBydnmDu5e4zkbiwQYiIVz7vaVqs4l63vQxKEBuYLQ6ZElD9Yuqmi0MM9WL5/IWFPBdttoyr9zv/V9xw==}
+
+  cn-fontsource-xiaolai-mono-sc-regular@1.0.3:
+    resolution: {integrity: sha512-gtrs656RKbI+lGY/iS12iBoMeABRITjpPycjh74uorPT4pwMIs2B2VhZBeP/l6OSiGdH4BTc9hHImTd39jj6Ig==}
+
+  cn-fontsource-yozai-regular@1.0.9:
+    resolution: {integrity: sha512-dJYKphAXxA3j2YxbIwGBJSs0kUMnLbCr5tuN4SjGJrUhL4gVp/wHwbD6HBcb6sX+lVo1QWjhDBxuRW2noTzYSQ==}
 
   co@4.6.0:
     resolution: {integrity: sha512-QVb0dM5HvG+uaxitm8wONl7jltx8dqhfU33DcqtOZcLSVIKSDDLDi7+0LbAKiyI8hD9u42m2YxXSkMGWThaecQ==}
@@ -5736,6 +5784,12 @@ snapshots:
 
   '@fontsource/ma-shan-zheng@5.3.1': {}
 
+  '@fontsource/noto-serif-sc@5.3.0': {}
+
+  '@fontsource/zcool-kuaile@5.3.0': {}
+
+  '@fontsource/zcool-qingke-huangyou@5.3.0': {}
+
   '@fontsource/zcool-xiaowei@5.3.0': {}
 
   '@fontsource/zhi-mang-xing@5.3.0': {}
@@ -6976,13 +7030,23 @@ snapshots:
       strip-ansi: 6.0.1
       wrap-ansi: 7.0.0
 
+  cn-fontsource-975-maru-sc-regular@1.0.1: {}
+
   cn-fontsource-alimama-dong-fang-da-kai-regular@1.0.3: {}
 
   cn-fontsource-hongleixingshu-regular@1.0.7: {}
 
+  cn-fontsource-long-zhu-ti-regular@1.0.4: {}
+
+  cn-fontsource-slidefu-regular@1.0.3: {}
+
   cn-fontsource-slideqiuhong-regular@1.0.6: {}
 
   cn-fontsource-slideyouran-regular@1.0.3: {}
+
+  cn-fontsource-xiaolai-mono-sc-regular@1.0.3: {}
+
+  cn-fontsource-yozai-regular@1.0.9: {}
 
   co@4.6.0: {}
 

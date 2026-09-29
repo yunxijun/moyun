@@ -22,11 +22,13 @@ export type CalligraphyScript = '楷' | '行' | '草'
 
 /** 字体书体分类 */
 export type FontScriptType =
+  | '名家'  // Famous Calligraphers
   | '篆'   // Seal Script
   | '隶'   // Clerical Script
   | '楷'   // Regular Script
   | '行'   // Semi-cursive
   | '草'   // Cursive
+  | '瘦金'  // Thin Gold Script (reserved)
   | '手写'  // Handwriting
   | '宋楷'  // Song-Kai hybrid
 
@@ -54,6 +56,19 @@ export type CalligraphyFont =
   | 'DongFangDaKai'      // 阿里妈妈东方大楷
   | 'ZcoolXiaoWei'       // 站酷小薇（温润宋楷）
   | 'DaoLiTi'            // 阿里妈妈刀隶体（隶书）
+  | 'ZcoolQingKeHuangYou' // 站酷庆科黄油体（圆趣手写）
+  | 'SlideFu'            // 演示佛系体（禅意手写）
+  | 'LongZhuTi'          // 龙珠体（力量手写）
+  | 'Yozai'              // 悠哉字体（日系手写）
+  | 'AoyagiReisho'       // 青柳隷书（日本书法家挥毫隶书）
+  | 'ZiXiaoHunLiShu'     // 字小魂洪亮毛笔隶书
+  | 'ShouJinTi'          // 宋徽宗瘦金甲粗版
+  | 'XiaoZhuan'          // 三极小篆简
+  | 'MaoZeDong'          // 草檀斋毛泽东字体
+  | 'NotoSerifSC'        // 思源宋体（典雅宋体）
+  | 'ZcoolKuaiLe'        // 站酷快乐体（趣味圆润）
+  | 'MaruSC'             // 975圆体（温柔圆体）
+  | 'XiaoLai'            // 小赖字体（日系可爱）
 
 /** AI 生成的诗词结果 */
 export interface PoemResult {

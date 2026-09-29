@@ -19,17 +19,37 @@ export const FONT_SCRIPT_TYPES: Record<FontScriptType, {
   description: string
   order: number
 }> = {
+  '名家': { label: '名家书法', description: '古今大家，翰墨风骨', order: 0 },
   '篆': { label: '篆书', description: '古朴圆润，上古遗韵', order: 1 },
   '隶': { label: '隶书', description: '蚕头雁尾，浑厚古拙', order: 2 },
   '楷': { label: '楷书', description: '端正规整，横平竖直', order: 3 },
   '行': { label: '行书', description: '流畅自然，行云流水', order: 4 },
   '草': { label: '草书', description: '奔放洒脱，笔画连绵', order: 5 },
-  '手写': { label: '手写体', description: '自然随性，返璞归真', order: 6 },
-  '宋楷': { label: '宋楷体', description: '温润典雅，刚柔并济', order: 7 },
+  '瘦金': { label: '瘦金体', description: '铁画银钩，御笔风骨', order: 6 },
+  '手写': { label: '手写体', description: '自然随性，返璞归真', order: 7 },
+  '宋楷': { label: '宋楷体', description: '温润典雅，刚柔并济', order: 8 },
 }
 
 /** 可用的书法字体 */
 export const CALLIGRAPHY_FONTS: Record<CalligraphyFont, FontInfo> = {
+  // ── 名家书法 ──
+  MaoZeDong: {
+    name: 'MaoZeDong',
+    label: '毛泽东体',
+    description: '草檀斋毛泽东字体，雄浑奔放，气吞山河',
+    cssFontFamily: 'MaoZeDong',
+    source: 'fontpkg',
+    scriptType: '名家',
+  },
+  ShouJinTi: {
+    name: 'ShouJinTi',
+    label: '瘦金体',
+    description: '宋徽宗瘦金书，铁画银钩，天骨遒美（商用需授权）',
+    cssFontFamily: 'ShouJinTi',
+    source: 'fontpkg',
+    scriptType: '名家',
+  },
+
   // ── 隶书 ──
   DaoLiTi: {
     name: 'DaoLiTi',
@@ -38,6 +58,33 @@ export const CALLIGRAPHY_FONTS: Record<CalligraphyFont, FontInfo> = {
     cssFontFamily: 'Alimama DaoLiTi',
     source: 'fontpkg',
     scriptType: '隶',
+  },
+
+  AoyagiReisho: {
+    name: 'AoyagiReisho',
+    label: '青柳隷书',
+    description: '日本书法家青柳衡山挥毫，正宗蚕头雁尾隶书（免费商用）',
+    cssFontFamily: 'aoyagireisyosimo',
+    source: 'fontpkg',
+    scriptType: '隶',
+  },
+  ZiXiaoHunLiShu: {
+    name: 'ZiXiaoHunLiShu',
+    label: '洪亮毛笔隶书',
+    description: '字小魂洪亮毛笔隶书，笔锋饱满，隶韵浑厚（商用需授权）',
+    cssFontFamily: 'ZiXiaoHunLiShu',
+    source: 'fontpkg',
+    scriptType: '隶',
+  },
+
+  // ── 篆书 ──
+  XiaoZhuan: {
+    name: 'XiaoZhuan',
+    label: '三极小篆',
+    description: '三极小篆简，圆转匀称，秦篆遗韵（商用需授权）',
+    cssFontFamily: 'XiaoZhuan',
+    source: 'fontpkg',
+    scriptType: '篆',
   },
 
   // ── 楷书 ──
@@ -128,6 +175,76 @@ export const CALLIGRAPHY_FONTS: Record<CalligraphyFont, FontInfo> = {
     cssFontFamily: 'ZCOOL XiaoWei',
     source: 'fontsource',
     scriptType: '宋楷',
+  },
+
+  // ── 宋体 ──
+  NotoSerifSC: {
+    name: 'NotoSerifSC',
+    label: '思源宋体',
+    description: 'Google Noto 思源宋体，典雅端庄，古韵宋刻',
+    cssFontFamily: 'Noto Serif SC',
+    source: 'fontsource',
+    scriptType: '宋楷',
+  },
+
+  // ── 趣味体 ──
+  ZcoolKuaiLe: {
+    name: 'ZcoolKuaiLe',
+    label: '站酷快乐',
+    description: '站酷快乐体，圆润饱满，童趣盎然',
+    cssFontFamily: 'ZCOOL KuaiLe',
+    source: 'fontsource',
+    scriptType: '手写',
+  },
+  MaruSC: {
+    name: 'MaruSC',
+    label: '975圆体',
+    description: '基于思源黑体的圆体，温柔可爱，适合轻松主题',
+    cssFontFamily: '975Maru-SC',
+    source: 'cn-fontsource',
+    scriptType: '手写',
+  },
+  XiaoLai: {
+    name: 'XiaoLai',
+    label: '小赖字体',
+    description: '基于濑户字体的简中化改良，日系可爱手写风',
+    cssFontFamily: 'XiaoLai Mono SC',
+    source: 'cn-fontsource',
+    scriptType: '手写',
+  },
+
+  // ── 手写体（扩充） ──
+  ZcoolQingKeHuangYou: {
+    name: 'ZcoolQingKeHuangYou',
+    label: '庆科黄油',
+    description: '站酷庆科黄油体，圆润饱满，趣味十足',
+    cssFontFamily: 'ZCOOL QingKe HuangYou',
+    source: 'fontsource',
+    scriptType: '手写',
+  },
+  SlideFu: {
+    name: 'SlideFu',
+    label: '佛系体',
+    description: '80岁老先生手书，禅意淡泊，返璞归真',
+    cssFontFamily: 'slidefu',
+    source: 'cn-fontsource',
+    scriptType: '手写',
+  },
+  LongZhuTi: {
+    name: 'LongZhuTi',
+    label: '龙珠体',
+    description: '标小智龙珠体，刚劲有力，气势磅礴',
+    cssFontFamily: 'longzhuti',
+    source: 'cn-fontsource',
+    scriptType: '手写',
+  },
+  Yozai: {
+    name: 'Yozai',
+    label: '悠哉体',
+    description: '日系手写风，轻松自然，文艺清新',
+    cssFontFamily: 'Yozai',
+    source: 'cn-fontsource',
+    scriptType: '手写',
   },
 }
 

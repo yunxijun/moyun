@@ -74,6 +74,7 @@
                     @touchstart.prevent="showStampPanel && onCardClick($event)"
                   />
                   <text v-if="showStampPanel" class="card-hint">点击卡片移动印章</text>
+                  <view v-if="fontLoading" class="font-loading-hint">字体加载中…</view>
                 </view>
                 <view v-if="currentMount === 'li-zhou'" class="scroll-rod scroll-rod--bottom" />
               </view>
@@ -532,6 +533,30 @@ import 'cn-fontsource-alimama-dong-fang-da-kai-regular/font.css'
 import 'cn-fontsource-hongleixingshu-regular/font.css'
 // 宋楷
 import '@fontsource/zcool-xiaowei'
+// 宋体
+import '@fontsource/noto-serif-sc'
+// 趣味 + 手写（扩充）
+import '@fontsource/zcool-qingke-huangyou'
+import '@fontsource/zcool-kuaile'
+import 'cn-fontsource-slidefu-regular/font.css'
+import 'cn-fontsource-long-zhu-ti-regular/font.css'
+import 'cn-fontsource-yozai-regular/font.css'
+import 'cn-fontsource-975-maru-sc-regular/font.css'
+import 'cn-fontsource-xiaolai-mono-sc-regular/font.css'
+
+// 自托管字体 woff2（用 ?url 获取 Vite 解析后的 URL）
+import ziXiaoHunLiShuUrl from '@/assets/fonts/ZiXiaoHunLiShu.woff2?url'
+import shouJinTiUrl from '@/assets/fonts/ShouJinTi.woff2?url'
+import xiaoZhuanUrl from '@/assets/fonts/XiaoZhuan.woff2?url'
+import maoZeDongUrl from '@/assets/fonts/MaoZeDong.woff2?url'
+
+/** 自托管字体映射：cssFontFamily → URL */
+const SELF_HOSTED_FONTS: Record<string, string> = {
+  ZiXiaoHunLiShu: ziXiaoHunLiShuUrl,
+  ShouJinTi: shouJinTiUrl,
+  XiaoZhuan: xiaoZhuanUrl,
+  MaoZeDong: maoZeDongUrl,
+}
 
 const poem = ref<PoemResult>({
   title: '秋思',
@@ -1502,22 +1527,68 @@ function selectTexture(type: TextureType) {
   currentTextureType.value = type
 }
 
+const fontLoading = ref(false)
+const loadedFontFamilies = new Set<string>()
+
 async function ensureFontReady(font: CalligraphyFont): Promise<void> {
-  const family = CALLIGRAPHY_FONTS[font].cssFontFamily
-  if (document.fonts) {
+  const info = CALLIGRAPHY_FONTS[font]
+  const family = info.cssFontFamily
+  if (!document.fonts) return
+
+  // 已成功加载过的字体直接跳过
+  if (loadedFontFamilies.has(family)) return
+
+  const checkStr = poem.value.content[0]?.slice(0, 2) || '永'
+
+  // 自托管字体：用 FontFace API 动态注册 + 加载
+  const selfHostedUrl = SELF_HOSTED_FONTS[family]
+  if (selfHostedUrl) {
+    fontLoading.value = true
     try {
-      // 用实际要渲染的诗句文字触发分片字体加载
-      const allText = [
-        ...poem.value.content,
-        poem.value.title,
-        stampText.value,
-        colophonCalligrapher.value,
-      ].join('')
-      await document.fonts.load(`48px "${family}"`, allText)
-      await document.fonts.ready
-    } catch (_) {
-      await new Promise(r => setTimeout(r, 500))
+      const face = new FontFace(family, `url(${selfHostedUrl})`, {
+        style: 'normal',
+        weight: 'normal',
+        display: 'swap',
+      })
+      const loaded = await face.load()
+      document.fonts.add(loaded)
+      loadedFontFamilies.add(family)
+      console.log(`[Font] ✅ ${info.label} (${family}) loaded via FontFace API`)
+    } catch (e) {
+      console.warn(`[Font] ❌ ${info.label} FontFace load error:`, e)
+    } finally {
+      fontLoading.value = false
     }
+    return
+  }
+
+  // CSS 加载的字体（Google Fonts / cn-fontsource 等）
+  if (document.fonts.check(`48px "${family}"`, checkStr)) {
+    loadedFontFamilies.add(family)
+    return
+  }
+
+  fontLoading.value = true
+  try {
+    const allText = [
+      ...poem.value.content,
+      poem.value.title,
+      stampText.value,
+      colophonCalligrapher.value,
+    ].join('')
+    await Promise.race([
+      document.fonts.load(`48px "${family}"`, allText),
+      new Promise(r => setTimeout(r, 30000)),
+    ])
+    await document.fonts.ready
+    if (document.fonts.check(`48px "${family}"`, checkStr)) {
+      loadedFontFamilies.add(family)
+      console.log(`[Font] ✅ ${info.label} (${family}) loaded`)
+    }
+  } catch (e) {
+    console.warn(`[Font] ⚠️ ${info.label} CSS load error:`, e)
+  } finally {
+    fontLoading.value = false
   }
 }
 
@@ -1840,6 +1911,9 @@ async function onShare() {
 </script>
 
 <style lang="scss">
+/* 青柳隷书（ZeoSeven CDN，免费商用日本隶书） */
+@import url("https://fontsapi.zeoseven.com/2204/main/result.css");
+
 /* 阿里妈妈刀隶体 @font-face（fontpkg 原始文件） */
 @font-face {
   font-family: 'Alimama DaoLiTi';
@@ -1848,6 +1922,9 @@ async function onShare() {
   font-style: normal;
   font-display: swap;
 }
+
+/* 自托管字体通过 JS FontFace API 动态加载，见 ensureFontReady() */
+
 
 $color-paper: var(--c-paper);
 $color-ink: var(--c-ink);
@@ -3337,6 +3414,23 @@ $breakpoint: 768px;
   margin-top: 8px;
   letter-spacing: 1px;
   animation: fadeIn 0.3s ease;
+}
+
+.font-loading-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: $color-mountain;
+  opacity: 0.8;
+  margin-top: 6px;
+  letter-spacing: 2px;
+  animation: fontPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes fontPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
 }
 
 @keyframes fadeIn {
