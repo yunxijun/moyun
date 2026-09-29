@@ -1,5 +1,5 @@
 import type { PoemGenerateRequest, PoemFromImageRequest, PoemStyle } from '../types'
-import { POEM_SYSTEM_PROMPT, POEM_FROM_IMAGE_PROMPT } from './prompts'
+import { POEM_SYSTEM_PROMPT, POEM_FROM_IMAGE_PROMPT, POEM_IDENTIFY_PROMPT } from './prompts'
 
 const STYLE_HINTS: Record<PoemStyle, string> = {
   '豪放': '风格偏向豪放派，气势雄浑，意境开阔，可参考李白、苏轼风格',
@@ -68,5 +68,18 @@ export function buildImagePoemPrompt(req: PoemFromImageRequest): {
   return {
     system: POEM_FROM_IMAGE_PROMPT,
     user: parts.join('\n'),
+  }
+}
+
+/**
+ * 构建经典诗词识别的用户消息
+ */
+export function buildIdentifyPrompt(text: string): {
+  system: string
+  user: string
+} {
+  return {
+    system: POEM_IDENTIFY_PROMPT,
+    user: `请识别并整理以下诗词：\n\n${text}`,
   }
 }

@@ -13,6 +13,8 @@ export interface ApiClient {
   generatePoem(req: PoemGenerateRequest): Promise<ApiResponse<PoemResult>>
   /** 图片+文字生成诗词 */
   poemFromImage(req: PoemFromImageRequest): Promise<ApiResponse<PoemResult>>
+  /** 识别经典诗词 */
+  identifyPoem(text: string): Promise<ApiResponse<PoemResult>>
   /** 书法渲染 */
   renderCalligraphy(req: CalligraphyRenderRequest): Promise<ApiResponse<CalligraphyRenderResult>>
   /** 获取用户信息 */
@@ -63,6 +65,7 @@ export function createApiClient(baseUrl: string, getToken?: () => string | null)
   return {
     generatePoem: (req) => request('/api/poem/generate', req),
     poemFromImage: (req) => request('/api/poem/from-image', req),
+    identifyPoem: (text) => request('/api/poem/identify', { text }),
     renderCalligraphy: (req) => request('/api/calligraphy/render', req),
     getUserProfile: () => request('/api/user/profile'),
   }
