@@ -6,7 +6,24 @@ onLaunch(() => {
   console.log("App Launch");
   const uiFont = uni.getStorageSync('moyun_ui_font') || 'calligraphy'
   document.documentElement.setAttribute('data-ui-font', uiFont)
+  const cursorStyle = uni.getStorageSync('moyun_cursor') || 'brush'
+  document.documentElement.setAttribute('data-cursor', cursorStyle)
+  initInkRipple()
 });
+
+function initInkRipple() {
+  document.addEventListener('click', (e: MouseEvent) => {
+    const x = e.clientX
+    const y = e.clientY
+    const ring = document.createElement('div')
+    ring.className = 'ink-ripple-ring'
+    ring.style.cssText = `left:${x}px;top:${y}px;`
+    document.body.appendChild(ring)
+    const cleanup = () => { if (ring.parentNode) ring.parentNode.removeChild(ring) }
+    ring.addEventListener('animationend', cleanup)
+    setTimeout(cleanup, 2000)
+  })
+}
 onShow(() => {
   console.log("App Show");
 });
@@ -21,9 +38,18 @@ onHide(() => {
    设计理念：水墨留白·诗意栖居
    ============================ */
 
-/* -- 自定义鼠标：毛笔 45° 倾斜（笔尖朝左上） -- */
+/* -- 自定义鼠标：毛笔（可通过 data-cursor 切换） -- */
+:root, [data-cursor="brush"] {
+  --cursor-default: url('/static/cursor-brush.svg') 3 3, auto;
+  --cursor-pointer: url('/static/cursor-brush.svg') 3 3, pointer;
+}
+[data-cursor="system"] {
+  --cursor-default: auto;
+  --cursor-pointer: pointer;
+}
+
 * {
-  cursor: url('/static/cursor-brush.svg') 3 3, auto;
+  cursor: var(--cursor-default);
 }
 
 a, button, [class*="btn"], [class*="seal"], [class*="tag"], [class*="menu-item"],
@@ -31,7 +57,7 @@ a, button, [class*="btn"], [class*="seal"], [class*="tag"], [class*="menu-item"]
 [class*="option"], [class*="dropdown"], [class*="picker"],
 [class*="stamp"], [class*="history"], [class*="poem-card"],
 [class*="recommend"], [class*="daily"], .clickable {
-  cursor: url('/static/cursor-brush.svg') 3 3, pointer;
+  cursor: var(--cursor-pointer);
 }
 
 /* -- 全局色彩变量（浅色模式） -- */
@@ -280,5 +306,42 @@ uni-textarea .uni-textarea-textarea,
 ::selection {
   background: rgba(199, 62, 29, 0.15);
   color: var(--c-ink);
+}
+
+/* -- 水滴涟漪效果 -- */
+.ink-ripple-ring {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(91, 127, 149, 0.4);
+  background: transparent;
+  opacity: 0;
+  will-change: width, height, opacity;
+  animation: rippleExpand 1.2s cubic-bezier(0.1, 0.5, 0.3, 1) both;
+  animation-fill-mode: forwards;
+  animation-iteration-count: 1;
+}
+
+@keyframes rippleExpand {
+  0% {
+    width: 8px;
+    height: 8px;
+    opacity: 0.6;
+    border-width: 1.5px;
+  }
+  100% {
+    width: 80px;
+    height: 80px;
+    opacity: 0;
+    border-width: 0.5px;
+  }
+}
+
+[data-theme="dark"] .ink-ripple-ring {
+  border-color: rgba(122, 168, 194, 0.35);
 }
 </style>

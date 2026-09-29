@@ -150,6 +150,26 @@
           </view>
         </view>
 
+        <!-- 鼠标样式 -->
+        <view class="setting-item">
+          <view class="setting-label">
+            <text class="setting-name">鼠标样式</text>
+            <text class="setting-desc">自定义毛笔光标或系统默认</text>
+          </view>
+          <view class="setting-control ui-font-group">
+            <text
+              class="ui-font-btn"
+              :class="{ 'ui-font-btn--active': cursorStyle === 'brush' }"
+              @tap="onSetCursor('brush')"
+            >毛笔</text>
+            <text
+              class="ui-font-btn"
+              :class="{ 'ui-font-btn--active': cursorStyle === 'system' }"
+              @tap="onSetCursor('system')"
+            >系统</text>
+          </view>
+        </view>
+
         <!-- 界面字体 -->
         <view class="setting-item">
           <view class="setting-label">
@@ -351,6 +371,15 @@ const editingNickname = ref('')
 const defaultFont = ref<CalligraphyFont>((uni.getStorageSync(DEFAULT_FONT_KEY) as CalligraphyFont) || 'MaShanZheng')
 const showFontPicker = ref(false)
 const fontGroups = getFontsByScript()
+
+type CursorStyle = 'brush' | 'system'
+const cursorStyle = ref<CursorStyle>((uni.getStorageSync('moyun_cursor') as CursorStyle) || 'brush')
+
+function onSetCursor(style: CursorStyle) {
+  cursorStyle.value = style
+  uni.setStorageSync('moyun_cursor', style)
+  document.documentElement.setAttribute('data-cursor', style)
+}
 
 type UiFontKey = 'calligraphy' | 'songti' | 'system'
 const uiFont = ref<UiFontKey>((uni.getStorageSync('moyun_ui_font') as UiFontKey) || 'calligraphy')

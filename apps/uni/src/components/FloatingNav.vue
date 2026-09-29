@@ -1,18 +1,24 @@
 <template>
-  <view class="side-nav" @mouseenter="isExpanded = true" @mouseleave="isExpanded = false">
-    <!-- 印章logo -->
-    <view class="nav-seal" @tap="toggleNav">
+  <view
+    class="side-nav"
+    :class="{ 'is-pinned': isPinned }"
+    @mouseenter="onEnter"
+    @mouseleave="onLeave"
+  >
+    <!-- 印章logo — 单击展开/收起，双击钉住 -->
+    <view class="nav-seal" :class="{ 'seal-pinned': isPinned }" @tap="onSealTap">
       <text class="seal-text">墨</text>
+      <view v-if="isPinned" class="pin-dot" />
     </view>
 
     <!-- 导航项 -->
-    <view class="nav-items" :class="{ show: isExpanded }">
+    <view class="nav-items" :class="{ show: isVisible }">
       <view
         v-for="(item, idx) in navItems"
         :key="item.path"
         class="nav-item"
         :class="{ active: currentPath === item.path }"
-        :style="{ transitionDelay: isExpanded ? `${idx * 0.06}s` : '0s' }"
+        :style="{ transitionDelay: isVisible ? `${idx * 0.06}s` : '0s' }"
         @tap="navigate(item.path)"
       >
         <text class="nav-char">{{ item.char }}</text>
@@ -20,10 +26,19 @@
       <!-- 主题切换 -->
       <view
         class="nav-item nav-item--theme"
-        :style="{ transitionDelay: isExpanded ? `${navItems.length * 0.06}s` : '0s' }"
+        :style="{ transitionDelay: isVisible ? `${navItems.length * 0.06}s` : '0s' }"
         @tap="onToggleTheme"
       >
         <text class="nav-char">{{ isDark ? '昼' : '夜' }}</text>
+      </view>
+      <!-- 钉住/取消钉住 -->
+      <view
+        class="nav-item nav-item--pin"
+        :class="{ 'nav-item--pin-active': isPinned }"
+        :style="{ transitionDelay: isVisible ? `${(navItems.length + 1) * 0.06}s` : '0s' }"
+        @tap="togglePin"
+      >
+        <text class="nav-char">{{ isPinned ? '收' : '钉' }}</text>
       </view>
     </view>
   </view>
@@ -34,7 +49,11 @@ import { ref, computed } from 'vue'
 import { useTheme } from '../composables/useTheme'
 
 const { isDark, toggle: onToggleTheme } = useTheme()
-const isExpanded = ref(false)
+const isPinned = ref(uni.getStorageSync('moyun_nav_pinned') === 'true')
+const isHovering = ref(false)
+const isManualOpen = ref(false)
+
+const isVisible = computed(() => isPinned.value || isHovering.value || isManualOpen.value)
 
 const navItems = [
   { char: '笔', label: '创作', path: '/pages/index/index' },
@@ -48,16 +67,25 @@ const currentPath = computed(() => {
   return '/' + (page?.route || '')
 })
 
-function toggleNav() {
-  isExpanded.value = !isExpanded.value
+function onEnter() { isHovering.value = true }
+function onLeave() { isHovering.value = false; isManualOpen.value = false }
+
+function onSealTap() {
+  if (isPinned.value) return
+  isManualOpen.value = !isManualOpen.value
+}
+
+function togglePin() {
+  isPinned.value = !isPinned.value
+  uni.setStorageSync('moyun_nav_pinned', String(isPinned.value))
 }
 
 function navigate(path: string) {
   if (currentPath.value === path) {
-    isExpanded.value = false
+    if (!isPinned.value) isManualOpen.value = false
     return
   }
-  isExpanded.value = false
+  if (!isPinned.value) isManualOpen.value = false
   uni.reLaunch({ url: path })
 }
 </script>
@@ -74,6 +102,9 @@ function navigate(path: string) {
   align-items: center;
   gap: 16rpx;
   padding: 16rpx;
+  transition: none !important;
+
+  * { transition-property: opacity, transform, background, border-color, box-shadow, color !important; }
 }
 
 .nav-seal {
@@ -89,15 +120,17 @@ function navigate(path: string) {
   -webkit-backdrop-filter: blur(12px);
   box-shadow: var(--shadow-sm);
   transition: all 0.3s ease;
+  position: relative;
 
   &:hover {
     transform: scale(1.08) rotate(-2deg);
     box-shadow: 0 8rpx 32rpx rgba(199, 62, 29, 0.2);
     background: rgba(199, 62, 29, 0.06);
   }
+  &:active { transform: scale(0.95); }
 
-  &:active {
-    transform: scale(0.95);
+  &.seal-pinned {
+    box-shadow: 0 0 0 3rpx rgba(199, 62, 29, 0.15), var(--shadow-sm);
   }
 }
 
@@ -108,12 +141,22 @@ function navigate(path: string) {
   line-height: 1;
 }
 
+.pin-dot {
+  position: absolute;
+  bottom: -4rpx;
+  right: -4rpx;
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: var(--c-vermilion);
+}
+
 .nav-items {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 14rpx;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .nav-item {
@@ -143,21 +186,15 @@ function navigate(path: string) {
     background: rgba(26, 26, 46, 0.08);
     border-color: rgba(26, 26, 46, 0.12);
     box-shadow: 0 4rpx 16rpx rgba(26, 26, 46, 0.08);
-    transform: translateX(-4rpx);
+    transform: rotate(-3deg) scale(1.05);
   }
-
-  &:active {
-    transform: scale(0.92);
-  }
+  &:active { transform: scale(0.92); }
 
   &.active {
     background: rgba(199, 62, 29, 0.1);
     border-color: rgba(199, 62, 29, 0.4);
     box-shadow: 0 2rpx 12rpx rgba(199, 62, 29, 0.12);
-
-    .nav-char {
-      color: var(--c-vermilion);
-    }
+    .nav-char { color: var(--c-vermilion); }
   }
 }
 
@@ -172,15 +209,20 @@ function navigate(path: string) {
 .nav-item--theme {
   border: 1rpx dashed var(--c-ink-25);
   background: transparent;
+  .nav-char { font-size: 24rpx; opacity: 0.7; }
+  &:hover { border-style: solid; .nav-char { opacity: 1; } }
+}
 
-  .nav-char {
-    font-size: 24rpx;
-    opacity: 0.7;
-  }
-
-  &:hover {
+.nav-item--pin {
+  border: 1rpx dashed var(--c-ink-15);
+  background: transparent;
+  .nav-char { font-size: 22rpx; opacity: 0.5; }
+  &:hover { border-style: solid; .nav-char { opacity: 0.8; } }
+  &.nav-item--pin-active {
+    border-color: rgba(199, 62, 29, 0.3);
     border-style: solid;
-    .nav-char { opacity: 1; }
+    background: rgba(199, 62, 29, 0.05);
+    .nav-char { color: var(--c-vermilion); opacity: 0.8; }
   }
 }
 </style>
