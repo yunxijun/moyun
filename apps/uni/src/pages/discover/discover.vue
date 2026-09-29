@@ -165,7 +165,7 @@ function formatTime(iso: string): string {
 }
 
 function onViewPoem(item: PoemRecord) {
-  localStorage.setItem('moyun_nav_poem', JSON.stringify(item.poem))
+  uni.setStorageSync('moyun_nav_poem', JSON.stringify(item.poem))
   uni.navigateTo({ url: '/pages/result/result?from=storage' })
 }
 
@@ -176,7 +176,7 @@ onMounted(() => loadFeatured())
 @import '@fontsource/ma-shan-zheng';
 
 .calligraphy {
-  font-family: 'Ma Shan Zheng', serif;
+  font-family: var(--ui-font);
 }
 
 .page {
@@ -193,7 +193,7 @@ onMounted(() => loadFeatured())
 }
 
 .title {
-  font-family: 'Ma Shan Zheng', serif;
+  font-family: var(--ui-font);
   font-size: 72rpx;
   color: var(--c-ink);
   letter-spacing: 16rpx;
@@ -343,7 +343,7 @@ onMounted(() => loadFeatured())
 }
 
 .recommend-genre {
-  font-family: 'Ma Shan Zheng', serif;
+  font-family: var(--ui-font);
   font-size: 22rpx;
   color: var(--c-gold);
   letter-spacing: 2rpx;
@@ -497,7 +497,7 @@ onMounted(() => loadFeatured())
 }
 
 .poem-card-badge {
-  font-family: 'Ma Shan Zheng', serif;
+  font-family: var(--ui-font);
   font-size: 20rpx;
   color: var(--c-mountain);
   background: color-mix(in srgb, var(--c-mountain) 8%, transparent);

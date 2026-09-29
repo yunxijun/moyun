@@ -235,13 +235,14 @@
       </view>
     </template>
 
+    </view><!-- /.content-wrap -->
+
+    <!-- 今日剩余（沉底） -->
     <view v-if="quotaRemaining >= 0" class="quota-hint">
       <view class="quota-line" />
       <text class="quota-text">今日剩余 {{ quotaRemaining }}/{{ quotaLimit }} 次</text>
       <view class="quota-line" />
     </view>
-
-    </view><!-- /.content-wrap -->
 
     <!-- 浮动导航 -->
     <FloatingNav />
@@ -322,7 +323,7 @@ const bookmarkStyle = computed(() => {
 
 function loadBookmarkPos() {
   try {
-    const saved = localStorage.getItem(BOOKMARK_STORAGE_KEY)
+    const saved = uni.getStorageSync(BOOKMARK_STORAGE_KEY)
     if (saved) {
       const p = JSON.parse(saved)
       if (typeof p.x === 'number' && typeof p.y === 'number') {
@@ -333,7 +334,7 @@ function loadBookmarkPos() {
 }
 
 function saveBookmarkPos() {
-  localStorage.setItem(BOOKMARK_STORAGE_KEY, JSON.stringify(bookmarkPos.value))
+  uni.setStorageSync(BOOKMARK_STORAGE_KEY, JSON.stringify(bookmarkPos.value))
 }
 
 function onBookmarkDragStart(e: MouseEvent | TouchEvent) {
@@ -456,10 +457,10 @@ onUnmounted(() => {
 
 // ========== 访客 ID ==========
 function getVisitorId(): string {
-  let id = localStorage.getItem('moyun_visitor_id')
+  let id = uni.getStorageSync('moyun_visitor_id')
   if (!id) {
     id = 'v_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
-    localStorage.setItem('moyun_visitor_id', id)
+    uni.setStorageSync('moyun_visitor_id', id)
   }
   return id
 }
@@ -613,8 +614,8 @@ async function onGenerate() {
       })
       loading.value = false
       if (result.success && result.data) {
-        localStorage.setItem('moyun_nav_poem', JSON.stringify(result.data))
-        localStorage.setItem('moyun_nav_input', JSON.stringify({
+        uni.setStorageSync('moyun_nav_poem', JSON.stringify(result.data))
+        uni.setStorageSync('moyun_nav_input', JSON.stringify({
           prompt: userInput.value,
           genre: selectedGenre.value,
           style: selectedStyle.value,
@@ -680,8 +681,8 @@ async function onGenerate() {
             }
             await new Promise(r => setTimeout(r, 800))
             loading.value = false
-            localStorage.setItem('moyun_nav_poem', JSON.stringify(evt.poem))
-            localStorage.setItem('moyun_nav_input', JSON.stringify({
+            uni.setStorageSync('moyun_nav_poem', JSON.stringify(evt.poem))
+            uni.setStorageSync('moyun_nav_input', JSON.stringify({
               prompt: userInput.value,
               genre: selectedGenre.value,
               style: selectedStyle.value,
@@ -743,8 +744,8 @@ async function onIdentify() {
     loading.value = false
 
     if (data.success && data.data) {
-      localStorage.setItem('moyun_nav_poem', JSON.stringify(data.data))
-      localStorage.setItem('moyun_nav_input', JSON.stringify({
+      uni.setStorageSync('moyun_nav_poem', JSON.stringify(data.data))
+      uni.setStorageSync('moyun_nav_input', JSON.stringify({
         prompt: classicInput.value,
         mode: 'classic',
       }))
@@ -774,7 +775,7 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 .page {
   min-height: 100vh;
   background-color: var(--c-paper);
-  padding: 0 0 200rpx;
+  padding: 0;
   position: relative;
   overflow-x: hidden;
 
@@ -937,7 +938,7 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 }
 
 .logo-char {
-  font-family: 'Ma Shan Zheng', serif;
+  font-family: var(--ui-font);
   font-size: 108rpx;
   color: $ink;
   line-height: 1;
@@ -1083,7 +1084,7 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 }
 
 .daily-poem {
-  font-family: 'Ma Shan Zheng', serif;
+  font-family: var(--ui-font);
   font-size: 18px;
   color: $ink;
   writing-mode: vertical-rl;
@@ -1172,7 +1173,7 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 }
 
 .mode-tab-mark {
-  font-family: 'Ma Shan Zheng', serif;
+  font-family: var(--ui-font);
   font-size: 34rpx;
   color: $mountain;
   opacity: 0.5;
@@ -1283,7 +1284,7 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 .tag-text {
   position: relative;
   z-index: 1;
-  font-family: 'Ma Shan Zheng', serif;
+  font-family: var(--ui-font);
   font-size: 28rpx;
   color: var(--c-ink-75);
   letter-spacing: 4rpx;
@@ -1357,7 +1358,7 @@ $ink-faint: rgba(26, 26, 46, 0.04);
   position: absolute;
   right: 52rpx;
   bottom: 20rpx;
-  font-family: 'Ma Shan Zheng', serif;
+  font-family: var(--ui-font);
   font-size: 56rpx;
   color: rgba(26, 26, 46, 0.045);
   line-height: 1;
@@ -1454,7 +1455,7 @@ $ink-faint: rgba(26, 26, 46, 0.04);
   text-align: center;
   line-height: 28rpx;
   font-size: 22rpx;
-  font-family: 'Ma Shan Zheng', serif;
+  font-family: var(--ui-font);
   box-shadow: 0 2rpx 6rpx rgba(199, 62, 29, 0.2);
   transform: rotate(6deg);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
@@ -1509,7 +1510,7 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 }
 
 .add-icon {
-  font-family: 'Ma Shan Zheng', serif;
+  font-family: var(--ui-font);
   font-size: 36rpx;
   color: $mountain;
   opacity: 0.55;
@@ -1570,7 +1571,7 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 }
 
 .classic-chip-title {
-  font-family: 'Ma Shan Zheng', serif;
+  font-family: var(--ui-font);
   font-size: 26rpx;
   color: var(--c-ink-75);
   letter-spacing: 2rpx;
@@ -1626,7 +1627,7 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 }
 
 .option-label-mark {
-  font-family: 'Ma Shan Zheng', serif;
+  font-family: var(--ui-font);
   font-size: 30rpx;
   color: $cinnabar;
   opacity: 0.6;
@@ -1763,7 +1764,7 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 
     .dropdown-text {
       color: $cinnabar;
-      font-family: 'Ma Shan Zheng', serif;
+      font-family: var(--ui-font);
     }
 
     &::before {
@@ -1894,7 +1895,7 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 }
 
 .seal-char {
-  font-family: 'Ma Shan Zheng', 'STKaiti', serif;
+  font-family: var(--ui-font);
   font-size: 52rpx;
   color: $cinnabar;
   line-height: 1;
@@ -1906,7 +1907,7 @@ $ink-faint: rgba(26, 26, 46, 0.04);
   align-items: center;
   justify-content: center;
   gap: 20rpx;
-  margin-top: 24rpx;
+  padding: 40rpx 60rpx 120rpx;
 }
 
 .quota-line {
@@ -1917,12 +1918,11 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 }
 
 .quota-text {
-  font-family: 'Ma Shan Zheng', serif;
+  font-family: var(--ui-font);
   font-size: 22rpx;
   color: rgba(91, 127, 149, 0.75);
-  writing-mode: vertical-rl;
   letter-spacing: 4rpx;
-  line-height: 1.6;
+  white-space: nowrap;
 }
 
 // ══════════════════════════════════════
@@ -2043,7 +2043,7 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 }
 
 .loading-title-char {
-  font-family: 'Ma Shan Zheng', serif;
+  font-family: var(--ui-font);
   font-size: 40rpx;
   color: $ink;
   writing-mode: vertical-rl;
@@ -2083,7 +2083,7 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 }
 
 .stream-text {
-  font-family: 'Ma Shan Zheng', serif;
+  font-family: var(--ui-font);
   font-size: 28rpx;
   color: $ink;
   writing-mode: vertical-rl;
@@ -2304,31 +2304,29 @@ $ink-faint: rgba(26, 26, 46, 0.04);
     pointer-events: auto;
   }
   .bookmark-body {
-    width: 52px;
-    padding: 18px 8px 14px;
+    width: 36px;
+    padding: 10px 6px 10px;
   }
   .daily-seal {
-    width: 22px;
-    height: 22px;
-    font-size: 11px;
-    margin-bottom: 8px;
-  }
-  .daily-label {
+    width: 18px;
+    height: 18px;
     font-size: 9px;
-    letter-spacing: 2px;
     margin-bottom: 6px;
   }
+  .daily-label {
+    display: none;
+  }
   .daily-poem {
-    font-size: 14px;
-    letter-spacing: 3px;
+    font-size: 12px;
+    letter-spacing: 2px;
   }
   .bookmark-tassel {
-    height: 24px;
-    margin-top: 4px;
+    height: 16px;
+    margin-top: 2px;
   }
   .pin-head {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   // Hero 缩小

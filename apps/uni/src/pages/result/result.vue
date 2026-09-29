@@ -483,6 +483,10 @@
         </view>
 
         <view class="actions-bar">
+          <view class="action-btn action-btn--fav" :class="{ 'is-fav': isFavorited }" @tap="onToggleFavorite">
+            <text class="action-btn-icon">{{ isFavorited ? '♥' : '♡' }}</text>
+            <text class="action-btn-text">{{ isFavorited ? '已收藏' : '收藏' }}</text>
+          </view>
           <view class="action-btn action-btn--save" @tap="onSaveImage">
             <text class="action-btn-text">保存高清图</text>
           </view>
@@ -940,7 +944,7 @@ function selectMaster(name: Calligrapher) {
   }
 }
 
-const currentFont = ref<CalligraphyFont>('MaShanZheng')
+const currentFont = ref<CalligraphyFont>((uni.getStorageSync('moyun_default_font') as CalligraphyFont) || 'MaShanZheng')
 const currentBg = ref<CardBackground>('ban-sheng-shu')
 const currentTmpl = ref<CardTemplate>('vertical')
 const currentMount = ref<MountStyle>('none')
@@ -1906,15 +1910,15 @@ onMounted(async () => {
   if (query?.from === 'storage') {
     // 从 localStorage 读取（推荐方式，避免超长 URL）
     try {
-      const poemRaw = localStorage.getItem('moyun_nav_poem')
+      const poemRaw = uni.getStorageSync('moyun_nav_poem')
       if (poemRaw) poem.value = JSON.parse(poemRaw)
-      const inputRaw = localStorage.getItem('moyun_nav_input')
+      const inputRaw = uni.getStorageSync('moyun_nav_input')
       if (inputRaw) userInput.value = JSON.parse(inputRaw)
     } catch (e) {
       console.error('解析诗词数据失败', e)
     }
-    localStorage.removeItem('moyun_nav_poem')
-    localStorage.removeItem('moyun_nav_input')
+    uni.removeStorageSync('moyun_nav_poem')
+    uni.removeStorageSync('moyun_nav_input')
   } else if (query?.poem) {
     // 兼容旧的 URL 参数方式
     try {
@@ -1930,6 +1934,7 @@ onMounted(async () => {
   }
 
   await nextTick()
+  checkFavorited()
   setupDividerEvents()
   setupTiltEvents()
   setTimeout(async () => {
@@ -2042,6 +2047,47 @@ function onPreviewInputImage(idx: number) {
   }
 }
 
+/* ── 收藏功能 ── */
+const FAVORITES_KEY = 'moyun_favorites'
+const isFavorited = ref(false)
+
+function getFavorites(): any[] {
+  try { return JSON.parse(uni.getStorageSync(FAVORITES_KEY) || '[]') } catch { return [] }
+}
+
+function checkFavorited() {
+  const favs = getFavorites()
+  isFavorited.value = favs.some((f: any) => f.poem.title === poem.value.title && f.poem.content?.join('') === poem.value.content?.join(''))
+}
+
+function onToggleFavorite() {
+  const favs = getFavorites()
+  const idx = favs.findIndex((f: any) => f.poem.title === poem.value.title && f.poem.content?.join('') === poem.value.content?.join(''))
+  if (idx >= 0) {
+    favs.splice(idx, 1)
+    isFavorited.value = false
+    uni.showToast({ title: '已取消收藏', icon: 'none' })
+  } else {
+    favs.unshift({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      poem: { ...poem.value },
+      createdAt: new Date().toISOString(),
+      font: currentFont.value,
+      mount: currentMount.value,
+    })
+    if (favs.length > 200) favs.pop()
+    isFavorited.value = true
+    uni.showToast({ title: '已收藏', icon: 'success' })
+  }
+  uni.setStorageSync(FAVORITES_KEY, JSON.stringify(favs))
+}
+
+/* ── 分享计数 ── */
+function incrementShareCount() {
+  const count = Number(uni.getStorageSync('moyun_share_count') || '0')
+  uni.setStorageSync('moyun_share_count', String(count + 1))
+}
+
 async function onSaveImage() {
   const result = await exportWithMount(2)
   if (!result) return
@@ -2094,6 +2140,7 @@ async function onShare() {
         text: `${poem.value.content.join('')}\n\n来自墨韵AI · moyun.art`,
         files: [file],
       })
+      incrementShareCount()
       return
     } catch (e: any) {
       if (e?.name === 'AbortError') return
@@ -2107,6 +2154,7 @@ async function onShare() {
   link.href = url
   link.click()
   URL.revokeObjectURL(url)
+  incrementShareCount()
   uni.showToast({ title: '图片已保存，可发送给好友', icon: 'none', duration: 2500 })
 }
 </script>
@@ -2131,7 +2179,7 @@ $color-paper: var(--c-paper);
 $color-ink: var(--c-ink);
 $color-vermilion: var(--c-vermilion);
 $color-mountain: var(--c-mountain);
-$font-calligraphy: 'Ma Shan Zheng', serif;
+$font-calligraphy: var(--ui-font);
 $nav-height: 48px;
 $breakpoint: 768px;
 
@@ -3942,6 +3990,17 @@ $breakpoint: 768px;
     background: var(--c-ink-06);
   }
 
+  &--fav .action-btn-text::before { content: none; }
+  &--fav .action-btn-icon {
+    font-size: 15px;
+    margin-right: 3px;
+    color: var(--c-ink-45);
+    transition: color 0.3s, transform 0.3s;
+  }
+  &--fav.is-fav .action-btn-icon {
+    color: $color-vermilion;
+    transform: scale(1.15);
+  }
   &--save .action-btn-text::before { color: $color-vermilion; }
   &--copy .action-btn-text::before { color: $color-mountain; }
   &--share .action-btn-text::before { color: var(--c-gold); }

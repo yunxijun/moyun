@@ -4,6 +4,8 @@ import '@fontsource/ma-shan-zheng';
 
 onLaunch(() => {
   console.log("App Launch");
+  const uiFont = uni.getStorageSync('moyun_ui_font') || 'calligraphy'
+  document.documentElement.setAttribute('data-ui-font', uiFont)
 });
 onShow(() => {
   console.log("App Show");
@@ -93,19 +95,30 @@ a, button, [class*="btn"], [class*="seal"], [class*="tag"], [class*="menu-item"]
   --ink-medium: var(--c-ink-15);
 }
 
+/* -- 全局 UI 字体 -- */
+:root, [data-ui-font="calligraphy"] {
+  --ui-font: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', serif;
+}
+[data-ui-font="songti"] {
+  --ui-font: 'Noto Serif SC', 'STSong', 'SimSun', 'Songti SC', serif;
+}
+[data-ui-font="system"] {
+  --ui-font: -apple-system, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+}
+
 /* -- 全局基础 -- */
 page {
   background-color: var(--c-paper);
-  font-family: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', 'PingFang SC', 'Microsoft YaHei', serif;
+  font-family: var(--ui-font), 'PingFang SC', 'Microsoft YaHei', serif;
   color: var(--c-ink);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   transition: background-color 0.4s ease, color 0.4s ease;
 }
 
-/* -- 书法字体 -- */
+/* -- 书法字体（跟随 UI 字体设置） -- */
 .calligraphy {
-  font-family: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', serif;
+  font-family: var(--ui-font);
 }
 
 /* -- 全局过渡 -- */

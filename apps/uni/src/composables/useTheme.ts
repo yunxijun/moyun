@@ -5,7 +5,7 @@ export type ThemeMode = 'light' | 'dark'
 const STORAGE_KEY = 'moyun_theme'
 
 const current = ref<ThemeMode>(
-  (localStorage.getItem(STORAGE_KEY) as ThemeMode) || 'light'
+  (uni.getStorageSync(STORAGE_KEY) as ThemeMode) || 'light'
 )
 
 function applyTheme(mode: ThemeMode) {
@@ -18,7 +18,7 @@ function applyTheme(mode: ThemeMode) {
 applyTheme(current.value)
 
 watch(current, (mode) => {
-  localStorage.setItem(STORAGE_KEY, mode)
+  uni.setStorageSync(STORAGE_KEY, mode)
   applyTheme(mode)
 })
 

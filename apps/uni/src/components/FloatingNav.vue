@@ -65,7 +65,7 @@ function navigate(path: string) {
 <style lang="scss">
 .side-nav {
   position: fixed;
-  right: 24rpx;
+  right: 12rpx;
   top: 50%;
   transform: translateY(-50%);
   z-index: 900;
@@ -73,6 +73,7 @@ function navigate(path: string) {
   flex-direction: column;
   align-items: center;
   gap: 16rpx;
+  padding: 16rpx;
 }
 
 .nav-seal {
@@ -101,7 +102,7 @@ function navigate(path: string) {
 }
 
 .seal-text {
-  font-family: 'Ma Shan Zheng', 'STKaiti', serif;
+  font-family: var(--ui-font);
   font-size: 36rpx;
   color: var(--c-vermilion);
   line-height: 1;
@@ -111,13 +112,13 @@ function navigate(path: string) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8rpx;
+  gap: 14rpx;
   overflow: hidden;
 }
 
 .nav-item {
-  width: 64rpx;
-  height: 64rpx;
+  width: 80rpx;
+  height: 80rpx;
   border-radius: 8rpx;
   display: flex;
   align-items: center;
@@ -161,8 +162,8 @@ function navigate(path: string) {
 }
 
 .nav-char {
-  font-family: 'Ma Shan Zheng', 'STKaiti', serif;
-  font-size: 28rpx;
+  font-family: var(--ui-font);
+  font-size: 32rpx;
   color: var(--c-ink);
   line-height: 1;
   letter-spacing: 0;
