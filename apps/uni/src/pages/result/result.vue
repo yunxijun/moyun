@@ -708,6 +708,214 @@ const MOUNT_STYLES: Record<MountStyle, MountInfo> = {
 const mountKeys = Object.keys(MOUNT_STYLES) as MountStyle[]
 const showMountPanel = ref(false)
 
+/** 装裱 Canvas 导出配置：padding（CSS px）+ 绘制函数 */
+interface MountCanvasCfg {
+  padding: [number, number, number, number] // top, right, bottom, left
+  margin: number
+  draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void
+  /** 额外装饰（画在装裱外层，如立轴天杆地杆） */
+  extra?: (ctx: CanvasRenderingContext2D, w: number, h: number) => void
+  /** 天杆/地杆额外高度 [top, bottom] */
+  rodHeight?: [number, number]
+}
+
+const MOUNT_CANVAS: Record<MountStyle, MountCanvasCfg> = {
+  'none': {
+    padding: [0, 0, 0, 0], margin: 0,
+    draw() {},
+  },
+  'jing-pian': {
+    padding: [24, 24, 24, 24], margin: 6,
+    draw(ctx, w, h) {
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, w, h)
+    },
+  },
+  'ling-biao': {
+    padding: [32, 22, 32, 22], margin: 6,
+    draw(ctx, w, h) {
+      const g = ctx.createLinearGradient(0, 0, 0, h)
+      g.addColorStop(0, '#8b7355'); g.addColorStop(0.02, '#9b8365')
+      g.addColorStop(0.04, '#8b7355'); g.addColorStop(0.5, '#7a6548')
+      g.addColorStop(0.96, '#8b7355'); g.addColorStop(0.98, '#9b8365')
+      g.addColorStop(1, '#8b7355')
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h)
+      // 织物纹理
+      ctx.globalAlpha = 0.03; ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.5
+      for (let y = 0; y < h; y += 2) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke() }
+      for (let x = 0; x < w; x += 2) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke() }
+      ctx.globalAlpha = 1
+    },
+  },
+  'xuan-he': {
+    padding: [56, 28, 42, 28], margin: 8,
+    draw(ctx, w, h) {
+      // 主体淡黄
+      ctx.fillStyle = '#f0e8d5'; ctx.fillRect(0, 0, w, h)
+      // 天头（天青色 + 隔水）
+      const tg = ctx.createLinearGradient(0, 0, 0, 56)
+      tg.addColorStop(0, '#6b8e9b'); tg.addColorStop(0.7, '#6b8e9b')
+      tg.addColorStop(0.72, '#c8bfa0'); tg.addColorStop(0.82, '#c8bfa0')
+      tg.addColorStop(0.84, '#a09070'); tg.addColorStop(0.9, '#a09070')
+      tg.addColorStop(0.92, '#d4c5a0'); tg.addColorStop(1, '#d4c5a0')
+      ctx.fillStyle = tg; ctx.fillRect(0, 0, w, 56)
+      // 地脚（绫绢褐色）
+      const bg = ctx.createLinearGradient(0, h - 42, 0, h)
+      bg.addColorStop(0, '#d4c5a0'); bg.addColorStop(0.08, '#d4c5a0')
+      bg.addColorStop(0.1, '#a09070'); bg.addColorStop(0.18, '#a09070')
+      bg.addColorStop(0.2, '#c8bfa0'); bg.addColorStop(0.28, '#c8bfa0')
+      bg.addColorStop(0.3, '#8b7355'); bg.addColorStop(1, '#8b7355')
+      ctx.fillStyle = bg; ctx.fillRect(0, h - 42, w, 42)
+    },
+  },
+  'hong-mu': {
+    padding: [16, 16, 16, 16], margin: 4,
+    draw(ctx, w, h) {
+      const g = ctx.createLinearGradient(0, 0, w, h)
+      g.addColorStop(0, '#5c2e0e'); g.addColorStop(0.12, '#7a3d1a')
+      g.addColorStop(0.25, '#6b3015'); g.addColorStop(0.4, '#8b4c28')
+      g.addColorStop(0.55, '#5c2e0e'); g.addColorStop(0.7, '#7a3d1a')
+      g.addColorStop(0.85, '#6b3015'); g.addColorStop(1, '#5c2e0e')
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h)
+      // 内边线
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1
+      ctx.strokeRect(3, 3, w - 6, h - 6)
+    },
+  },
+  'jin-qi': {
+    padding: [16, 16, 16, 16], margin: 4,
+    draw(ctx, w, h) {
+      const g = ctx.createLinearGradient(0, 0, w, h)
+      g.addColorStop(0, '#b8860b'); g.addColorStop(0.15, '#daa520')
+      g.addColorStop(0.3, '#ffd700'); g.addColorStop(0.5, '#daa520')
+      g.addColorStop(0.65, '#b8860b'); g.addColorStop(0.8, '#cd950c')
+      g.addColorStop(1, '#b8860b')
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h)
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1
+      ctx.strokeRect(4, 4, w - 8, h - 8)
+    },
+  },
+  'zhu-kuang': {
+    padding: [14, 14, 14, 14], margin: 4,
+    draw(ctx, w, h) {
+      const g = ctx.createLinearGradient(0, 0, 0, h)
+      g.addColorStop(0, '#c8b87a'); g.addColorStop(0.15, '#b5a568')
+      g.addColorStop(0.4, '#a89555'); g.addColorStop(0.6, '#b5a568')
+      g.addColorStop(0.85, '#c8b87a'); g.addColorStop(1, '#b5a568')
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h)
+      // 竹节横线
+      ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 2
+      ctx.globalAlpha = 0.5
+      const drawLine = (y: number) => {
+        const lg = ctx.createLinearGradient(3, 0, w - 3, 0)
+        lg.addColorStop(0, 'transparent'); lg.addColorStop(0.5, 'rgba(0,0,0,0.15)'); lg.addColorStop(1, 'transparent')
+        ctx.strokeStyle = lg; ctx.beginPath(); ctx.moveTo(3, y); ctx.lineTo(w - 3, y); ctx.stroke()
+      }
+      drawLine(h * 0.3); drawLine(h * 0.7)
+      ctx.globalAlpha = 1
+    },
+  },
+  'li-zhou': {
+    padding: [32, 20, 32, 20], margin: 6,
+    rodHeight: [18, 18],
+    draw(ctx, w, h) {
+      const g = ctx.createLinearGradient(0, 0, 0, h)
+      g.addColorStop(0, '#8b7355'); g.addColorStop(0.06, '#8b7355')
+      g.addColorStop(0.065, '#d4c5a0'); g.addColorStop(0.08, '#d4c5a0')
+      g.addColorStop(0.085, '#f5efe0'); g.addColorStop(0.5, '#ede5d2')
+      g.addColorStop(0.915, '#f5efe0'); g.addColorStop(0.92, '#d4c5a0')
+      g.addColorStop(0.935, '#d4c5a0'); g.addColorStop(0.94, '#8b7355')
+      g.addColorStop(1, '#8b7355')
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h)
+    },
+    extra(ctx, w, _h) {
+      // 天杆
+      drawScrollRod(ctx, -12, -14, w + 24, 18)
+      // 地杆
+      drawScrollRod(ctx, -12, _h - 4, w + 24, 18)
+    },
+  },
+}
+
+/** 绘制天杆/地杆 */
+function drawScrollRod(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+  ctx.save()
+  const r = h / 2
+  const g = ctx.createLinearGradient(0, y, 0, y + h)
+  g.addColorStop(0, '#8b5e3c'); g.addColorStop(0.4, '#5c3a1e'); g.addColorStop(1, '#8b5e3c')
+  ctx.fillStyle = g
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + w - r, y)
+  ctx.arcTo(x + w, y, x + w, y + r, r)
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+  ctx.lineTo(x + r, y + h)
+  ctx.arcTo(x, y + h, x, y + r, r)
+  ctx.arcTo(x, y, x + r, y, r)
+  ctx.closePath()
+  ctx.fill()
+  // 高光
+  ctx.globalAlpha = 0.15
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1
+  ctx.beginPath(); ctx.moveTo(x + r, y + 1); ctx.lineTo(x + w - r, y + 1); ctx.stroke()
+  ctx.globalAlpha = 1
+  ctx.restore()
+}
+
+/** 生成含装裱的高清 Canvas Blob */
+async function exportWithMount(scale: number = 2): Promise<{ blob: Blob; width: number; height: number } | null> {
+  const tmpl = CARD_TEMPLATES[currentTmpl.value]
+  const cardW = customWidth.value || tmpl.width
+  const cardH = customHeight.value || tmpl.height
+  const mount = currentMount.value
+  const cfg = MOUNT_CANVAS[mount]
+
+  const [pt, pr, pb, pl] = cfg.padding
+  const m = cfg.margin
+  const [rodTop, rodBot] = cfg.rodHeight ?? [0, 0]
+
+  // 总画面尺寸（逻辑像素）
+  const totalW = cardW + (pl + m + m + pr)
+  const totalH = cardH + (pt + m + m + pb) + rodTop + rodBot
+
+  const canvas = document.createElement('canvas')
+  canvas.width = totalW * scale
+  canvas.height = totalH * scale
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+
+  ctx.scale(scale, scale)
+  await ensureFontReady(currentFont.value)
+
+  // 1. 绘制装裱底色（偏移到天杆下方）
+  if (mount !== 'none') {
+    ctx.save()
+    ctx.translate(0, rodTop)
+    cfg.draw(ctx, totalW, totalH - rodTop - rodBot)
+    ctx.restore()
+  }
+
+  // 2. 绘制额外装饰（天杆地杆等）
+  if (cfg.extra) {
+    ctx.save()
+    ctx.translate(0, rodTop)
+    cfg.extra(ctx, totalW, totalH - rodTop - rodBot)
+    ctx.restore()
+  }
+
+  // 3. 在画心区域绘制书法卡片
+  ctx.save()
+  ctx.translate(pl + m, pt + m + rodTop)
+  renderCalligraphyCard(ctx, buildRenderOptions())
+  ctx.restore()
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      resolve(blob ? { blob, width: canvas.width, height: canvas.height } : null)
+    }, 'image/png')
+  })
+}
+
 // 书法家 AI 模式
 const masterList = CALLIGRAPHERS.filter(m => m.name !== null)
 const selectedMaster = ref<Calligrapher>(null)
@@ -772,20 +980,28 @@ const panelCenterW = ref(28)
 
 const isDragging = ref(false)
 
-const panelLeftStyle = computed(() => ({
-  width: `${panelLeftW.value}%`,
-  minWidth: '200px',
-  maxWidth: 'none',
-  flex: 'none',
-  transition: isDragging.value ? 'none' : undefined,
-}))
-const panelCenterStyle = computed(() => ({
-  width: `${panelCenterW.value}%`,
-  minWidth: '180px',
-  maxWidth: 'none',
-  flex: 'none',
-  transition: isDragging.value ? 'none' : undefined,
-}))
+const isMobileResult = ref(false)
+
+const panelLeftStyle = computed(() => {
+  if (isMobileResult.value) return {} // 手机端由 CSS 控制
+  return {
+    width: `${panelLeftW.value}%`,
+    minWidth: '200px',
+    maxWidth: 'none',
+    flex: 'none',
+    transition: isDragging.value ? 'none' : undefined,
+  }
+})
+const panelCenterStyle = computed(() => {
+  if (isMobileResult.value) return {}
+  return {
+    width: `${panelCenterW.value}%`,
+    minWidth: '180px',
+    maxWidth: 'none',
+    flex: 'none',
+    transition: isDragging.value ? 'none' : undefined,
+  }
+})
 
 let draggingIdx = -1
 let dragStartX = 0
@@ -1637,7 +1853,15 @@ async function renderCard() {
   const tmpl = CARD_TEMPLATES[currentTmpl.value]
   const realW = customWidth.value || tmpl.width
   const realH = customHeight.value || tmpl.height
-  const baseW = Math.min(343, window.innerWidth - 64)
+
+  // 手机端需要扣除装裱的额外宽度
+  const mountExtra = (() => {
+    const cfg = MOUNT_CANVAS[currentMount.value]
+    if (!cfg) return 0
+    return (cfg.padding[1] + cfg.padding[3] + cfg.margin * 2) * 2 // 装裱 padding + margin 两侧
+  })()
+  const availW = window.innerWidth - 32 - mountExtra // 32px = 两侧安全边距
+  const baseW = Math.min(343, availW)
   const displayW = Math.round(baseW * previewScale.value / 100)
   const scale = displayW / realW
   const displayH = realH * scale
@@ -1669,7 +1893,13 @@ async function renderCard() {
 /** 用户原始输入信息 */
 const userInput = ref<{ prompt?: string; genre?: string; style?: string; images?: string[] }>({})
 
+function checkMobileResult() {
+  isMobileResult.value = window.innerWidth < 768
+}
+
 onMounted(async () => {
+  checkMobileResult()
+  window.addEventListener('resize', checkMobileResult)
   const pages = getCurrentPages()
   const currentPage = pages[pages.length - 1] as any
   const query = currentPage?.$page?.options || currentPage?.options || {}
@@ -1813,30 +2043,16 @@ function onPreviewInputImage(idx: number) {
 }
 
 async function onSaveImage() {
-  const tmpl = CARD_TEMPLATES[currentTmpl.value]
-  const realW = customWidth.value || tmpl.width
-  const realH = customHeight.value || tmpl.height
-  const scale = 2
-  const hdCanvas = document.createElement('canvas')
-  hdCanvas.width = realW * scale
-  hdCanvas.height = realH * scale
-  const hdCtx = hdCanvas.getContext('2d')
-  if (!hdCtx) return
+  const result = await exportWithMount(2)
+  if (!result) return
 
-  hdCtx.scale(scale, scale)
-  await ensureFontReady(currentFont.value)
-  renderCalligraphyCard(hdCtx, buildRenderOptions())
-
-  hdCanvas.toBlob((blob) => {
-    if (!blob) return
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.download = `墨韵_${poem.value.title}_${realW * scale}x${realH * scale}.png`
-    link.href = url
-    link.click()
-    URL.revokeObjectURL(url)
-    uni.showToast({ title: '高清图已保存', icon: 'success' })
-  }, 'image/png')
+  const url = URL.createObjectURL(result.blob)
+  const link = document.createElement('a')
+  link.download = `墨韵_${poem.value.title}_${result.width}x${result.height}.png`
+  link.href = url
+  link.click()
+  URL.revokeObjectURL(url)
+  uni.showToast({ title: '高清图已保存', icon: 'success' })
 }
 
 function onCopyPoem() {
@@ -1861,23 +2077,8 @@ function onCopyPoem() {
 }
 
 async function onShare() {
-  // 生成高清卡片图
-  const tmpl = CARD_TEMPLATES[currentTmpl.value]
-  const realW = customWidth.value || tmpl.width
-  const realH = customHeight.value || tmpl.height
-  const scale = 2
-  const shareCanvas = document.createElement('canvas')
-  shareCanvas.width = realW * scale
-  shareCanvas.height = realH * scale
-  const ctx = shareCanvas.getContext('2d')
-  if (!ctx) return
-
-  ctx.scale(scale, scale)
-  await ensureFontReady(currentFont.value)
-  renderCalligraphyCard(ctx, buildRenderOptions())
-
-  // 尝试用 Web Share API 分享图片文件（支持的浏览器可直接分享到微信等）
-  const blob: Blob | null = await new Promise((resolve) => shareCanvas.toBlob(resolve, 'image/png'))
+  const result = await exportWithMount(2)
+  const blob = result?.blob ?? null
   if (!blob) {
     uni.showToast({ title: '图片生成失败', icon: 'none' })
     return
@@ -2251,6 +2452,8 @@ $breakpoint: 768px;
   position: relative;
   transition: transform 0.1s ease-out;
   transform-style: preserve-3d;
+  max-width: 100%;
+  overflow: visible;
   will-change: transform;
   &.tilt-active {
     cursor: grab;
@@ -3916,5 +4119,146 @@ $breakpoint: 768px;
   font-family: $font-calligraphy;
   cursor: pointer;
   &:active { opacity: 0.6; }
+}
+
+/* ══════════════════════════════════════
+   结果页移动端适配（≤ 768px）
+   ══════════════════════════════════════ */
+@media (max-width: #{$breakpoint - 1px}) {
+  // ── 手机端：预览吸顶 + 控制区可滚 ──
+  .page {
+    height: 100vh;
+    min-height: unset;
+    overflow: hidden;
+  }
+  .main-layout {
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    height: calc(100vh - #{$nav-height});
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  // 面板强制全宽
+  .panel {
+    width: 100% !important;
+    min-width: unset !important;
+    max-width: unset !important;
+    flex: none !important;
+  }
+
+  // 预览区：sticky 吸顶
+  .panel-left {
+    position: sticky !important;
+    top: 0;
+    z-index: 10;
+    background: var(--c-paper);
+    max-height: 44vh;
+    overflow: hidden;
+    padding: 8px 8px 0;
+    border-bottom: 1px solid var(--c-ink-06);
+    // 底部淡出遮罩
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 16px;
+      background: linear-gradient(transparent, var(--c-paper));
+      pointer-events: none;
+      z-index: 1;
+    }
+  }
+  .card-section {
+    overflow: hidden;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .preview-toolbar {
+    flex-shrink: 0;
+  }
+
+  // 控制面板
+  .panel-center {
+    padding: 12px !important;
+  }
+  .panel-right {
+    padding: 0 12px 16px;
+  }
+
+  // 卡片预览缩放适配
+  .mount-frame {
+    max-width: 100%;
+    transform: scale(0.8);
+    transform-origin: center center;
+  }
+  .tilt-wrapper {
+    max-width: 100%;
+  }
+
+  // 装裱在手机端缩小 padding
+  .mount-jing-pian .mount-mat { padding: 12px; }
+  .mount-ling-biao .mount-mat { padding: 16px 12px; }
+  .mount-xuan-he .mount-mat { padding: 28px 14px 22px; }
+  .mount-hong-mu .mount-mat,
+  .mount-jin-qi .mount-mat { padding: 10px; }
+  .mount-zhu-kuang .mount-mat { padding: 8px; }
+  .mount-li-zhou .mount-mat { padding: 16px 12px; }
+  .scroll-rod { width: calc(100% + 16px); height: 14px; }
+
+  // 预览控制栏紧凑
+  .preview-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .preview-3d-chips {
+    gap: 0;
+  }
+  .preview-zoom-bar {
+    min-width: 100%;
+  }
+
+  // 控制面板
+  .panel-center {
+    padding: 0 4px;
+  }
+
+  // 选择器网格横向排列（2列）
+  .selector-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .selector {
+    min-width: unset;
+  }
+
+  // 字号/间距滑块
+  .param-slider {
+    gap: 6px;
+  }
+
+  // 书法家标签换行紧凑
+  .calligrapher-chips {
+    gap: 6px;
+  }
+}
+
+/* 极小屏（≤ 375px） */
+@media (max-width: 375px) {
+  .mount-jing-pian .mount-mat { padding: 8px; }
+  .mount-ling-biao .mount-mat { padding: 10px 8px; }
+  .mount-xuan-he .mount-mat { padding: 20px 10px 16px; }
+
+  .selector-mark {
+    font-size: 24px;
+  }
+  .selector-name {
+    font-size: 10px;
+  }
 }
 </style>

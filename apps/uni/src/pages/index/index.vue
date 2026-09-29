@@ -21,27 +21,47 @@
       </view>
     </view>
 
-    <!-- 今日诗签 -->
-    <view class="daily-section">
-      <view class="daily-card" @tap="onDailyCardTap">
+    <!-- 今日诗签 — 悬挂式书签（可拖拽） -->
+    <view
+      class="daily-bookmark"
+      :style="bookmarkStyle"
+      @mousedown.prevent="onBookmarkDragStart"
+      @touchstart.prevent="onBookmarkDragStart"
+    >
+      <view class="bookmark-pin">
+        <view class="pin-head" />
+      </view>
+      <view class="bookmark-body" ref="bookmarkBodyRef" @tap="onDailyCardTap">
         <view class="daily-seal">签</view>
         <text class="daily-label">今日诗签</text>
         <view class="daily-poem-wrap">
           <text class="daily-poem">「{{ dailyPoem }}」</text>
         </view>
-        <view class="daily-corner daily-corner-tl" />
-        <view class="daily-corner daily-corner-br" />
+        <view class="bookmark-tassel" />
       </view>
     </view>
 
-    <!-- 创作区域 -->
-    <view class="section">
-      <view class="section-head">
-        <view class="section-line" />
-        <text class="section-title">开始创作</text>
-        <view class="section-line" />
-      </view>
+    <!-- 内容约束容器 -->
+    <view class="content-wrap">
 
+    <!-- 双入口模式切换 -->
+    <view class="mode-section">
+      <view class="mode-switch">
+        <view class="mode-tab" :class="{ active: mode === 'create' }" @tap="mode = 'create'">
+          <text class="mode-tab-mark">创</text>
+          <text class="mode-tab-label">AI赋诗</text>
+        </view>
+        <view class="mode-divider" />
+        <view class="mode-tab" :class="{ active: mode === 'classic' }" @tap="mode = 'classic'">
+          <text class="mode-tab-mark">典</text>
+          <text class="mode-tab-label">经典重现</text>
+        </view>
+      </view>
+      <text class="mode-desc">{{ mode === 'create' ? '输入主题，AI为你创作古典诗词' : '粘贴诗词原文，AI识别后生成书法' }}</text>
+    </view>
+
+    <!-- ═══ AI赋诗 模式 ═══ -->
+    <template v-if="mode === 'create'">
       <!-- 快捷主题标签 -->
       <view class="tags">
         <view
@@ -55,113 +75,173 @@
           <text class="tag-text">{{ tag.label }}</text>
         </view>
       </view>
-    </view>
 
-    <!-- 信笺输入 -->
-    <view class="input-section">
-      <view class="letter-paper">
-        <view class="letter-margin" />
-        <view class="letter-margin-right" />
-        <view class="letter-watermark">笺</view>
-        <textarea
-          v-model="userInput"
-          class="input-area"
-          placeholder="输入你的心情、场景或主题..."
-          :maxlength="200"
-          auto-height
-        />
-        <view class="letter-lines">
-          <view v-for="n in 4" :key="n" class="letter-line" />
-        </view>
-      </view>
+      <view class="ink-divider" />
 
-      <!-- 图片上传 -->
-      <view class="image-upload">
-        <view
-          v-for="(img, idx) in uploadedImages"
-          :key="idx"
-          class="image-preview"
-        >
-          <image :src="img" mode="aspectFill" class="preview-img" @tap="onPreviewImage(idx)" />
-          <view class="remove-btn" @tap.stop="removeImage(idx)">×</view>
-        </view>
-        <view
-          v-if="uploadedImages.length < 3"
-          class="add-image"
-          @tap="onChooseImage"
-        >
-          <view class="add-icon-seal">
-            <text class="add-icon">＋</text>
+      <!-- 信笺输入 -->
+      <view class="input-section">
+        <view class="letter-paper">
+          <view class="letter-margin" />
+          <view class="letter-margin-right" />
+          <view class="letter-watermark">笺</view>
+          <textarea
+            v-model="userInput"
+            class="input-area"
+            placeholder="输入你的心情、场景或主题..."
+            :maxlength="200"
+            auto-height
+          />
+          <view class="letter-lines">
+            <view v-for="n in 4" :key="n" class="letter-line" />
           </view>
-          <text class="add-text">以图赋诗</text>
         </view>
-      </view>
-    </view>
 
-    <!-- 体裁 / 风格 -->
-    <view class="options">
-      <view class="option-wrap">
-        <view class="option-item" @tap="showGenrePanel = !showGenrePanel; showStylePanel = false">
-          <text class="option-dot"></text>
-          <text class="option-label-mark">体</text>
-          <text class="option-label">体裁</text>
-          <text class="option-value">{{ selectedGenre || '不限' }}</text>
-          <view class="option-arrow" :class="{ open: showGenrePanel }" />
-        </view>
-        <view v-if="showGenrePanel" class="dropdown-panel">
+        <!-- 图片上传 -->
+        <view class="image-upload">
           <view
-            v-for="g in genres"
-            :key="g"
-            class="dropdown-item"
-            :class="{ active: (g === '自动' && !selectedGenre) || g === selectedGenre }"
-            @tap="selectedGenre = g === '自动' ? '' : g; showGenrePanel = false"
+            v-for="(img, idx) in uploadedImages"
+            :key="idx"
+            class="image-preview"
           >
-            <text class="dropdown-text">{{ g }}</text>
+            <image :src="img" mode="aspectFill" class="preview-img" @tap="onPreviewImage(idx)" />
+            <view class="remove-btn" @tap.stop="removeImage(idx)">×</view>
           </view>
-        </view>
-      </view>
-      <view class="option-wrap">
-        <view class="option-item" @tap="showStylePanel = !showStylePanel; showGenrePanel = false">
-          <text class="option-dot"></text>
-          <text class="option-label-mark">风</text>
-          <text class="option-label">风格</text>
-          <text class="option-value">{{ selectedStyle || '不限' }}</text>
-          <view class="option-arrow" :class="{ open: showStylePanel }" />
-        </view>
-        <view v-if="showStylePanel" class="dropdown-panel">
           <view
-            v-for="s in styles"
-            :key="s"
-            class="dropdown-item"
-            :class="{ active: (s === '自动' && !selectedStyle) || s === selectedStyle }"
-            @tap="selectedStyle = s === '自动' ? '' : s; showStylePanel = false"
+            v-if="uploadedImages.length < 3"
+            class="add-image"
+            @tap="onChooseImage"
           >
-            <text class="dropdown-text">{{ s }}</text>
+            <view class="add-icon-seal">
+              <text class="add-icon">＋</text>
+            </view>
+            <text class="add-text">以图赋诗</text>
           </view>
         </view>
       </view>
-    </view>
 
-    <!-- 生成按钮 - 印章风格 -->
-    <view class="generate-wrap">
-      <view class="seal-halo" :class="{ pulsing: !loading }" />
-      <view class="seal-ripple" :class="{ pulsing: !loading }" />
-      <view class="generate-seal" :class="{ active: loading }" @tap="onGenerate">
-        <view class="seal-border">
-          <view class="seal-inner">
-            <text class="seal-char">{{ loading ? '挥' : '落' }}</text>
-            <text class="seal-char">{{ loading ? '毫' : '笔' }}</text>
-            <text class="seal-char">{{ loading ? '中' : '成' }}</text>
-            <text class="seal-char">{{ loading ? '…' : '诗' }}</text>
+      <!-- 体裁 / 风格 -->
+      <view class="options">
+        <view class="option-wrap">
+          <view class="option-item" @tap="showGenrePanel = !showGenrePanel; showStylePanel = false">
+            <text class="option-dot"></text>
+            <text class="option-label-mark">体</text>
+            <text class="option-label">体裁</text>
+            <text class="option-value">{{ selectedGenre || '不限' }}</text>
+            <view class="option-arrow" :class="{ open: showGenrePanel }" />
+          </view>
+          <view v-if="showGenrePanel" class="dropdown-panel">
+            <view
+              v-for="g in genres"
+              :key="g"
+              class="dropdown-item"
+              :class="{ active: (g === '自动' && !selectedGenre) || g === selectedGenre }"
+              @tap="selectedGenre = g === '自动' ? '' : g; showGenrePanel = false"
+            >
+              <text class="dropdown-text">{{ g }}</text>
+            </view>
+          </view>
+        </view>
+        <view class="option-wrap">
+          <view class="option-item" @tap="showStylePanel = !showStylePanel; showGenrePanel = false">
+            <text class="option-dot"></text>
+            <text class="option-label-mark">风</text>
+            <text class="option-label">风格</text>
+            <text class="option-value">{{ selectedStyle || '不限' }}</text>
+            <view class="option-arrow" :class="{ open: showStylePanel }" />
+          </view>
+          <view v-if="showStylePanel" class="dropdown-panel">
+            <view
+              v-for="s in styles"
+              :key="s"
+              class="dropdown-item"
+              :class="{ active: (s === '自动' && !selectedStyle) || s === selectedStyle }"
+              @tap="selectedStyle = s === '自动' ? '' : s; showStylePanel = false"
+            >
+              <text class="dropdown-text">{{ s }}</text>
+            </view>
           </view>
         </view>
       </view>
-    </view>
+
+      <!-- 生成按钮 - 印章风格 -->
+      <view class="generate-wrap">
+        <view class="seal-halo" :class="{ pulsing: !loading }" />
+        <view class="seal-ripple" :class="{ pulsing: !loading }" />
+        <view class="generate-seal" :class="{ active: loading }" @tap="onGenerate">
+          <view class="seal-border">
+            <view class="seal-inner">
+              <text class="seal-char">{{ loading ? '挥' : '落' }}</text>
+              <text class="seal-char">{{ loading ? '毫' : '笔' }}</text>
+              <text class="seal-char">{{ loading ? '中' : '成' }}</text>
+              <text class="seal-char">{{ loading ? '…' : '诗' }}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </template>
+
+    <!-- ═══ 经典重现 模式 ═══ -->
+    <template v-if="mode === 'classic'">
+      <!-- 名篇速选（快捷填入） -->
+      <view class="classic-chips">
+        <view
+          v-for="p in classicPresets"
+          :key="p.title"
+          class="classic-chip"
+          :class="{ active: classicInput === p.content }"
+          @tap="classicInput = p.content"
+        >
+          <text class="classic-chip-title">{{ p.title }}</text>
+          <text class="classic-chip-dot">·</text>
+          <text class="classic-chip-author">{{ p.author }}</text>
+        </view>
+      </view>
+
+      <view class="ink-divider" />
+
+      <!-- 输入区 -->
+      <view class="input-section">
+        <view class="letter-paper classic-paper">
+          <view class="letter-margin" />
+          <view class="letter-margin-right" />
+          <view class="letter-watermark">诗</view>
+          <textarea
+            v-model="classicInput"
+            class="input-area classic-input"
+            placeholder="粘贴或输入一首诗词…&#10;&#10;如：床前明月光，疑是地上霜。&#10;举头望明月，低头思故乡。"
+            :maxlength="1000"
+            auto-height
+          />
+          <view class="letter-lines">
+            <view v-for="n in 6" :key="n" class="letter-line" />
+          </view>
+        </view>
+      </view>
+
+      <!-- 识别按钮 -->
+      <view class="generate-wrap">
+        <view class="seal-halo" :class="{ pulsing: !loading }" />
+        <view class="seal-ripple" :class="{ pulsing: !loading }" />
+        <view class="generate-seal" :class="{ active: loading }" @tap="onIdentify">
+          <view class="seal-border">
+            <view class="seal-inner">
+              <text class="seal-char">{{ loading ? '识' : '挥' }}</text>
+              <text class="seal-char">{{ loading ? '别' : '毫' }}</text>
+              <text class="seal-char">{{ loading ? '中' : '泼' }}</text>
+              <text class="seal-char">{{ loading ? '…' : '墨' }}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </template>
+
     <view v-if="quotaRemaining >= 0" class="quota-hint">
       <view class="quota-line" />
       <text class="quota-text">今日剩余 {{ quotaRemaining }}/{{ quotaLimit }} 次</text>
       <view class="quota-line" />
     </view>
+
+    </view><!-- /.content-wrap -->
 
     <!-- 浮动导航 -->
     <FloatingNav />
@@ -190,10 +270,189 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import FloatingNav from '../../components/FloatingNav.vue'
 
 const dailyPoem = ref('山高月小，水落石出')
+
+// ========== 诗签书签：自由摆动 + 可拖拽 ==========
+const bookmarkBodyRef = ref<any>(null)
+let bookmarkAngle = 0
+let bookmarkVelocity = 0
+let bookmarkTime = 0
+let bookmarkRafId = 0
+
+// 书签位置（px）
+const BOOKMARK_STORAGE_KEY = 'moyun_bookmark_pos'
+const bookmarkPos = ref({ x: -1, y: 80 }) // x=-1 表示未初始化，用默认右侧位置
+let isDraggingBookmark = false
+let dragOffsetX = 0
+let dragOffsetY = 0
+
+// hero 区域限制
+const HERO_MIN_Y = 20
+const HERO_MAX_Y = 240 // ~540rpx 的一半多一点
+
+// 滚动吸附：hero 内跟随，滚出后 fixed
+const scrollY = ref(0)
+const STICKY_TOP = 12 // 吸附到顶部时的偏移(px)
+
+function onScroll() {
+  scrollY.value = window.scrollY || document.documentElement.scrollTop
+}
+
+const isMobile = ref(false)
+
+const bookmarkStyle = computed(() => {
+  // 手机端由 CSS 控制位置（fixed 右上角）
+  if (isMobile.value) return {}
+
+  const posY = bookmarkPos.value.y
+  const isSticky = scrollY.value > posY - STICKY_TOP
+
+  if (bookmarkPos.value.x < 0) {
+    return isSticky
+      ? { position: 'fixed', top: `${STICKY_TOP}px`, right: 'clamp(16px, 4vw, 60px)' }
+      : { position: 'absolute', top: `${posY}px`, right: 'clamp(16px, 4vw, 60px)' }
+  }
+  return isSticky
+    ? { position: 'fixed', top: `${STICKY_TOP}px`, left: `${bookmarkPos.value.x}px`, right: 'auto' }
+    : { position: 'absolute', top: `${posY}px`, left: `${bookmarkPos.value.x}px`, right: 'auto' }
+})
+
+function loadBookmarkPos() {
+  try {
+    const saved = localStorage.getItem(BOOKMARK_STORAGE_KEY)
+    if (saved) {
+      const p = JSON.parse(saved)
+      if (typeof p.x === 'number' && typeof p.y === 'number') {
+        bookmarkPos.value = p
+      }
+    }
+  } catch {}
+}
+
+function saveBookmarkPos() {
+  localStorage.setItem(BOOKMARK_STORAGE_KEY, JSON.stringify(bookmarkPos.value))
+}
+
+function onBookmarkDragStart(e: MouseEvent | TouchEvent) {
+  // 手机端不允许拖拽（空间太小）
+  if (window.innerWidth <= 768) return
+  isDraggingBookmark = true
+  const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+  const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+
+  // 如果是默认位置（right 定位），先转换为 left 定位
+  if (bookmarkPos.value.x < 0) {
+    bookmarkPos.value.x = window.innerWidth - 72 - 30 // 书签宽度 + 右边距估算
+  }
+
+  dragOffsetX = clientX - bookmarkPos.value.x
+  dragOffsetY = clientY - bookmarkPos.value.y
+
+  document.addEventListener('mousemove', onBookmarkDragMove)
+  document.addEventListener('mouseup', onBookmarkDragEnd)
+  document.addEventListener('touchmove', onBookmarkDragMove, { passive: false })
+  document.addEventListener('touchend', onBookmarkDragEnd)
+}
+
+/** 计算内容区的左右边界（书签不能进入的区域） */
+function getContentBounds() {
+  const vw = window.innerWidth
+  const contentW = Math.min(680, vw - 40) // content-wrap max-width + padding
+  const contentLeft = (vw - contentW) / 2
+  const contentRight = contentLeft + contentW
+  return { contentLeft, contentRight }
+}
+
+/** 将 x 吸附到内容区两侧 */
+function snapToMargin(rawX: number): number {
+  const bookmarkW = 72
+  const { contentLeft, contentRight } = getContentBounds()
+  const margin = 8 // 与内容区的最小间距
+
+  const leftZoneMax = contentLeft - bookmarkW - margin
+  const rightZoneMin = contentRight + margin
+
+  // 如果屏幕太窄没有侧边空间，就贴到右边
+  if (leftZoneMax < 0 && rightZoneMin > window.innerWidth - bookmarkW) {
+    return window.innerWidth - bookmarkW - 8
+  }
+
+  // 判断拖拽位置更靠近左侧还是右侧
+  const midpoint = (contentLeft + contentRight) / 2
+  if (rawX + bookmarkW / 2 < midpoint) {
+    // 吸附左侧
+    return Math.max(0, Math.min(leftZoneMax, rawX))
+  } else {
+    // 吸附右侧
+    return Math.min(window.innerWidth - bookmarkW, Math.max(rightZoneMin, rawX))
+  }
+}
+
+function onBookmarkDragMove(e: MouseEvent | TouchEvent) {
+  if (!isDraggingBookmark) return
+  if ('touches' in e) e.preventDefault()
+
+  const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+  const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+
+  const rawX = clientX - dragOffsetX
+  const x = snapToMargin(rawX)
+  const y = Math.max(HERO_MIN_Y, Math.min(HERO_MAX_Y, clientY - dragOffsetY))
+
+  bookmarkPos.value = { x, y }
+}
+
+function onBookmarkDragEnd() {
+  isDraggingBookmark = false
+  saveBookmarkPos()
+  document.removeEventListener('mousemove', onBookmarkDragMove)
+  document.removeEventListener('mouseup', onBookmarkDragEnd)
+  document.removeEventListener('touchmove', onBookmarkDragMove)
+  document.removeEventListener('touchend', onBookmarkDragEnd)
+}
+
+// 摆动动画
+function animateBookmark() {
+  bookmarkTime += 0.016
+
+  const windMain = Math.sin(bookmarkTime * 0.8) * 3.5
+  const windGust = Math.sin(bookmarkTime * 2.1 + 1.3) * 1.2
+  const windBreath = Math.sin(bookmarkTime * 0.3 + 0.7) * 0.8
+  // 拖拽中增大振幅
+  const dragBoost = isDraggingBookmark ? 4 : 0
+  const targetAngle = windMain + windGust + windBreath + dragBoost
+
+  const force = (targetAngle - bookmarkAngle) * 0.02
+  bookmarkVelocity = (bookmarkVelocity + force) * 0.92
+  bookmarkAngle += bookmarkVelocity
+
+  const bodyEl = bookmarkBodyRef.value?.$el || bookmarkBodyRef.value
+  if (bodyEl) {
+    bodyEl.style.transform = `rotate(${bookmarkAngle.toFixed(2)}deg)`
+  }
+  bookmarkRafId = requestAnimationFrame(animateBookmark)
+}
+
+function checkMobile() {
+  isMobile.value = window.innerWidth <= 768
+}
+
+onMounted(() => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+  loadBookmarkPos()
+  bookmarkRafId = requestAnimationFrame(animateBookmark)
+  window.addEventListener('scroll', onScroll, { passive: true })
+})
+
+onUnmounted(() => {
+  cancelAnimationFrame(bookmarkRafId)
+  window.removeEventListener('scroll', onScroll)
+  window.removeEventListener('resize', checkMobile)
+})
 
 // ========== 访客 ID ==========
 function getVisitorId(): string {
@@ -228,6 +487,18 @@ onMounted(() => fetchQuota())
 // ========== 流式生成 ==========
 const streamingText = ref('')
 const streamingDone = ref(false)
+
+const mode = ref<'create' | 'classic'>('create')
+const classicInput = ref('')
+
+const classicPresets = [
+  { title: '静夜思', author: '李白', content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。' },
+  { title: '春晓', author: '孟浩然', content: '春眠不觉晓，处处闻啼鸟。夜来风雨声，花落知多少。' },
+  { title: '登鹳雀楼', author: '王之涣', content: '白日依山尽，黄河入海流。欲穷千里目，更上一层楼。' },
+  { title: '望庐山瀑布', author: '李白', content: '日照香炉生紫烟，遥看瀑布挂前川。飞流直下三千尺，疑是银河落九天。' },
+  { title: '水调歌头', author: '苏轼', content: '明月几时有？把酒问青天。不知天上宫阙，今夕是何年。' },
+  { title: '将进酒', author: '李白', content: '君不见黄河之水天上来，奔流到海不复回。君不见高堂明镜悲白发，朝如青丝暮成雪。' },
+]
 
 const quickTags = [
   { label: '山水', value: '写景' },
@@ -435,6 +706,57 @@ async function onGenerate() {
     uni.showToast({ title: '网络异常，请重试', icon: 'none' })
   }
 }
+
+/** 经典诗词识别 */
+async function onIdentify() {
+  if (loading.value) return
+  if (!classicInput.value.trim()) {
+    uni.showToast({ title: '请输入或粘贴诗词', icon: 'none' })
+    return
+  }
+
+  loading.value = true
+  streamingText.value = ''
+  streamingDone.value = false
+
+  try {
+    const resp = await fetch('http://localhost:3001/api/poem/identify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-visitor-id': getVisitorId(),
+      },
+      body: JSON.stringify({ text: classicInput.value }),
+    })
+
+    if (!resp.ok) {
+      if (resp.status === 429) {
+        const errData = await resp.json()
+        loading.value = false
+        uni.showToast({ title: errData.error?.message || '今日次数已用完', icon: 'none', duration: 3000 })
+        return
+      }
+      throw new Error('请求失败')
+    }
+
+    const data = await resp.json()
+    loading.value = false
+
+    if (data.success && data.data) {
+      localStorage.setItem('moyun_nav_poem', JSON.stringify(data.data))
+      localStorage.setItem('moyun_nav_input', JSON.stringify({
+        prompt: classicInput.value,
+        mode: 'classic',
+      }))
+      uni.navigateTo({ url: '/pages/result/result?from=storage' })
+    } else {
+      uni.showToast({ title: data.error?.message || '识别失败', icon: 'none' })
+    }
+  } catch (err) {
+    loading.value = false
+    uni.showToast({ title: '网络异常，请重试', icon: 'none' })
+  }
+}
 </script>
 
 <style lang="scss">
@@ -452,9 +774,32 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 .page {
   min-height: 100vh;
   background-color: var(--c-paper);
-  padding: 0 40rpx 200rpx;
+  padding: 0 0 200rpx;
   position: relative;
   overflow-x: hidden;
+
+  // 页面底层水墨晕染 —— 从 hero 向下延伸的淡墨雾气
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1200rpx;
+    background:
+      radial-gradient(ellipse 80% 40% at 50% 200rpx, rgba(91, 127, 149, 0.08), transparent),
+      radial-gradient(ellipse 60% 30% at 20% 500rpx, rgba(91, 127, 149, 0.04), transparent),
+      radial-gradient(ellipse 50% 25% at 80% 600rpx, rgba(139, 115, 85, 0.03), transparent);
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
+// 内容容器 — 约束最大宽度，居中
+.content-wrap {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0 40rpx;
+  position: relative;
+  z-index: 1;
 }
 
 // ══════════════════════════════════════
@@ -462,53 +807,56 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 // ══════════════════════════════════════
 .hero {
   position: relative;
-  height: 480rpx;
+  height: 540rpx;
+  margin-bottom: 40rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 -40rpx;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .hero-bg {
   position: absolute;
   inset: 0;
+  bottom: -80rpx; // 向下延伸
   background: linear-gradient(
     180deg,
     $paper 0%,
-    rgba(250, 248, 243, 0.95) 30%,
-    rgba(91, 127, 149, 0.12) 70%,
-    rgba(91, 127, 149, 0.22) 100%
+    rgba(250, 248, 243, 0.9) 20%,
+    rgba(91, 127, 149, 0.15) 55%,
+    rgba(91, 127, 149, 0.28) 80%,
+    rgba(91, 127, 149, 0.12) 95%,
+    transparent 100%
   );
 }
 
 .mountain {
   position: absolute;
-  bottom: 0;
+  bottom: -40rpx;
   width: 100%;
   border-radius: 50% 50% 0 0;
 
   &-far {
-    height: 180rpx;
-    background: linear-gradient(180deg, transparent, rgba(91, 127, 149, 0.15));
-    transform: scaleX(1.6);
-    bottom: 60rpx;
+    height: 220rpx;
+    background: linear-gradient(180deg, transparent 10%, rgba(91, 127, 149, 0.2));
+    transform: scaleX(1.8);
+    bottom: 80rpx;
     animation: mountainReveal 2s ease-out forwards;
   }
 
   &-mid {
-    height: 140rpx;
-    background: linear-gradient(180deg, transparent, rgba(91, 127, 149, 0.25));
-    transform: scaleX(1.3);
+    height: 170rpx;
+    background: linear-gradient(180deg, transparent 10%, rgba(91, 127, 149, 0.35));
+    transform: scaleX(1.4);
     bottom: 30rpx;
     animation: mountainReveal 2.4s ease-out 0.3s forwards;
     opacity: 0;
   }
 
   &-near {
-    height: 100rpx;
-    background: linear-gradient(180deg, transparent, var(--c-ink-12));
-    transform: scaleX(1.1);
+    height: 120rpx;
+    background: linear-gradient(180deg, transparent 10%, rgba(26, 26, 46, 0.12));
+    transform: scaleX(1.15);
     animation: mountainReveal 2.8s ease-out 0.6s forwards;
     opacity: 0;
   }
@@ -516,22 +864,23 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 
 .mist {
   position: absolute;
-  height: 60rpx;
   border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(250, 248, 243, 0.8), transparent);
+  background: radial-gradient(ellipse, rgba(250, 248, 243, 0.85), transparent);
   animation: mistDrift 8s ease-in-out infinite;
 
   &-1 {
-    width: 300rpx;
-    bottom: 100rpx;
-    left: 10%;
+    width: 400rpx;
+    height: 80rpx;
+    bottom: 110rpx;
+    left: 5%;
     animation-delay: 0s;
   }
 
   &-2 {
-    width: 400rpx;
-    bottom: 80rpx;
-    right: 5%;
+    width: 500rpx;
+    height: 70rpx;
+    bottom: 60rpx;
+    right: 0%;
     animation-delay: -4s;
   }
 }
@@ -589,84 +938,142 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 
 .logo-char {
   font-family: 'Ma Shan Zheng', serif;
-  font-size: 96rpx;
+  font-size: 108rpx;
   color: $ink;
   line-height: 1;
   letter-spacing: 0;
-  text-shadow: 2rpx 4rpx 12rpx var(--c-ink-08);
+  text-shadow: 0 4rpx 20rpx var(--c-ink-15);
 }
 
 .subtitle {
-  margin-top: 24rpx;
+  margin-top: 28rpx;
   font-size: 22rpx;
   color: $mountain;
-  letter-spacing: 12rpx;
-  opacity: 0.85;
+  letter-spacing: 16rpx;
+  opacity: 0.75;
+  position: relative;
+
+  // 副标题两侧的装饰线
+  &::before, &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 60rpx;
+    height: 1rpx;
+    background: linear-gradient(90deg, transparent, $mountain, transparent);
+    opacity: 0.3;
+  }
+  &::before { right: calc(100% + 16rpx); }
+  &::after { left: calc(100% + 16rpx); }
 }
 
 // ══════════════════════════════════════
-//  今日诗签
+//  今日诗签 — 悬挂式书签
 // ══════════════════════════════════════
-.daily-section {
-  display: flex;
-  justify-content: center;
-  margin: -40rpx 0 56rpx;
-  position: relative;
-  z-index: 3;
-}
-
-.daily-card {
-  position: relative;
-  width: 200rpx;
-  min-height: 360rpx;
-  background: linear-gradient(180deg, var(--c-paper-card) 0%, $paper 100%);
-  border: 1rpx solid var(--c-ink-12);
-  padding: 40rpx 32rpx 48rpx;
-  transform: rotate(-2deg);
-  box-shadow:
-    4rpx 8rpx 24rpx var(--c-ink-06),
-    inset 0 0 60rpx rgba(250, 248, 243, 0.5);
+.daily-bookmark {
+  // position 由 JS bookmarkStyle 动态设置（absolute ↔ fixed）
+  z-index: 50;
   display: flex;
   flex-direction: column;
   align-items: center;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s ease;
-
-  &:hover {
-    transform: rotate(-2deg) translateY(-8rpx) scale(1.02);
-    box-shadow:
-      6rpx 12rpx 36rpx rgba(26, 26, 46, 0.1),
-      inset 0 0 60rpx rgba(250, 248, 243, 0.5);
-  }
+  cursor: grab;
+  user-select: none;
+  // 拖拽结束吸附时的平滑过渡
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              top 0.15s ease,
+              filter 0.2s ease;
 
   &:active {
-    transform: rotate(-1deg) scale(0.98);
+    cursor: grabbing;
+    filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.15));
+    transition: filter 0.2s ease; // 拖拽中不要位置过渡
+  }
+}
+
+// 钉子/别针
+.bookmark-pin {
+  position: relative;
+  z-index: 2;
+  width: 12px;
+  height: 12px;
+}
+
+.pin-head {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #d4a574, #8b5e3c 60%, #5c3a1e);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+// 书签主体
+.bookmark-body {
+  cursor: inherit;
+  transform-origin: top center;
+  will-change: transform;
+  // 初始微倾
+  transform: rotate(-1deg);
+
+  position: relative;
+  width: 72px;
+  margin-top: -3px;
+  padding: 28px 12px 20px;
+  background:
+    linear-gradient(180deg,
+      #faf6ee 0%,
+      #f5efe0 30%,
+      #ede5d2 80%,
+      #e8dfc8 100%);
+  border: 1px solid rgba(139, 115, 85, 0.15);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  box-shadow:
+    2px 4px 16px rgba(26, 26, 46, 0.08),
+    inset 0 0 30px rgba(250, 248, 243, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: box-shadow 0.3s ease;
+
+  // 顶部折角阴影
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 12px;
+    background: linear-gradient(180deg, rgba(139, 115, 85, 0.06), transparent);
+    pointer-events: none;
+  }
+
+  &:hover {
+    box-shadow:
+      3px 6px 24px rgba(26, 26, 46, 0.12),
+      inset 0 0 30px rgba(250, 248, 243, 0.4);
   }
 }
 
 .daily-seal {
-  position: absolute;
-  top: 16rpx;
-  right: 16rpx;
-  width: 40rpx;
-  height: 40rpx;
-  border: 2rpx solid $cinnabar;
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid $cinnabar;
   color: $cinnabar;
-  font-size: 20rpx;
+  font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4rpx;
-  opacity: 0.7;
-  transform: rotate(8deg);
+  border-radius: 2px;
+  opacity: 0.75;
+  margin-bottom: 12px;
+  transform: rotate(5deg);
 }
 
 .daily-label {
-  font-size: 20rpx;
+  font-size: 10px;
   color: $mountain;
-  letter-spacing: 6rpx;
+  letter-spacing: 3px;
   writing-mode: vertical-rl;
-  margin-bottom: 24rpx;
-  opacity: 0.7;
+  margin-bottom: 10px;
+  opacity: 0.6;
 }
 
 .daily-poem-wrap {
@@ -677,40 +1084,126 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 
 .daily-poem {
   font-family: 'Ma Shan Zheng', serif;
-  font-size: 32rpx;
+  font-size: 18px;
   color: $ink;
   writing-mode: vertical-rl;
-  letter-spacing: 8rpx;
-  line-height: 1.8;
+  letter-spacing: 5px;
+  line-height: 1.6;
 }
 
-.daily-corner {
-  position: absolute;
-  width: 24rpx;
-  height: 24rpx;
-  border-color: var(--c-ink-15);
-  border-style: solid;
+// 书签底部流苏
+.bookmark-tassel {
+  width: 2px;
+  height: 36px;
+  margin-top: 8px;
+  position: relative;
+  background: linear-gradient(180deg, $cinnabar, rgba(199, 62, 29, 0.3));
+  border-radius: 0 0 2px 2px;
 
-  &-tl {
-    top: 12rpx;
-    left: 12rpx;
-    border-width: 2rpx 0 0 2rpx;
+  &::before, &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    width: 8px;
+    height: 14px;
+    border-radius: 0 0 4px 4px;
   }
 
-  &-br {
-    bottom: 12rpx;
-    right: 12rpx;
-    border-width: 0 2rpx 2rpx 0;
+  &::before {
+    left: -5px;
+    background: linear-gradient(180deg, rgba(199, 62, 29, 0.5), rgba(199, 62, 29, 0.1));
+    transform: rotate(-8deg);
+  }
+
+  &::after {
+    right: -5px;
+    background: linear-gradient(180deg, rgba(199, 62, 29, 0.5), rgba(199, 62, 29, 0.1));
+    transform: rotate(8deg);
   }
 }
 
 // ══════════════════════════════════════
-//  创作区域
+//  双入口模式切换
 // ══════════════════════════════════════
-.section {
+.mode-section {
+  margin-top: 40rpx;
+  margin-bottom: 36rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.mode-switch {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: linear-gradient(180deg, rgba(255,254,249,0.8), rgba(245,240,230,0.5));
+  border: 1rpx solid var(--c-border);
+  border-radius: 12rpx;
+  padding: 6rpx;
+  position: relative;
+}
+
+.mode-tab {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 18rpx 36rpx;
+  border-radius: 8rpx;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+
+  &.active {
+    background: $ink;
+    box-shadow: 0 4rpx 16rpx var(--c-ink-15);
+
+    .mode-tab-mark {
+      color: $cinnabar;
+      opacity: 1;
+    }
+    .mode-tab-label {
+      color: rgba(250, 248, 243, 0.95);
+    }
+  }
+
+  &:not(.active):hover {
+    background: rgba(26, 26, 46, 0.04);
+  }
+}
+
+.mode-tab-mark {
+  font-family: 'Ma Shan Zheng', serif;
+  font-size: 34rpx;
+  color: $mountain;
+  opacity: 0.5;
+  line-height: 1;
+}
+
+.mode-tab-label {
+  font-size: 24rpx;
+  color: $mountain;
+  letter-spacing: 4rpx;
+  white-space: nowrap;
+}
+
+.mode-divider {
+  width: 1rpx;
+  height: 36rpx;
+  background: var(--c-ink-12);
+  flex-shrink: 0;
+}
+
+.mode-desc {
   margin-top: 16rpx;
+  font-size: 22rpx;
+  color: $mountain;
+  opacity: 0.6;
+  letter-spacing: 2rpx;
 }
 
+// ══════════════════════════════════════
+//  通用区域
+// ══════════════════════════════════════
 .section-head {
   display: flex;
   align-items: center;
@@ -735,16 +1228,18 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 .tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
+  gap: 18rpx;
   justify-content: center;
+  margin-bottom: 8rpx;
 }
 
 .tag {
   position: relative;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1rpx solid rgba(26, 26, 46, 0.1);
+  background: rgba(255, 254, 249, 0.75);
+  border: 1rpx solid rgba(91, 127, 149, 0.12);
   border-radius: 999rpx;
+  backdrop-filter: blur(8px);
   padding: 14rpx 28rpx;
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -788,8 +1283,18 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 .tag-text {
   position: relative;
   z-index: 1;
-  font-size: 24rpx;
+  font-family: 'Ma Shan Zheng', serif;
+  font-size: 28rpx;
   color: var(--c-ink-75);
+  letter-spacing: 4rpx;
+}
+
+// 水墨渐隐分隔
+.ink-divider {
+  height: 2rpx;
+  margin: 40rpx 60rpx 0;
+  background: linear-gradient(90deg, transparent, var(--c-ink-12), rgba(91, 127, 149, 0.15), var(--c-ink-12), transparent);
+  border-radius: 2rpx;
 }
 
 // 信笺输入
@@ -804,14 +1309,15 @@ $ink-faint: rgba(26, 26, 46, 0.04);
       0deg,
       transparent,
       transparent 3rpx,
-      rgba(26, 26, 46, 0.012) 3rpx,
-      rgba(26, 26, 46, 0.012) 4rpx
+      rgba(139, 115, 85, 0.02) 3rpx,
+      rgba(139, 115, 85, 0.02) 4rpx
     ),
-    linear-gradient(180deg, rgba(255, 254, 249, 0.85), rgba(245, 240, 230, 0.6));
-  border: 1rpx solid var(--c-border);
+    linear-gradient(180deg, #fffef8, #f8f2e8);
+  border: 1rpx solid rgba(139, 115, 85, 0.12);
   border-radius: 8rpx;
   padding: 32rpx 56rpx 48rpx 48rpx;
   min-height: 200rpx;
+  box-shadow: 0 4rpx 20rpx rgba(139, 115, 85, 0.06);
   transition: background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
 
   &:focus-within {
@@ -820,12 +1326,12 @@ $ink-faint: rgba(26, 26, 46, 0.04);
         0deg,
         transparent,
         transparent 3rpx,
-        rgba(26, 26, 46, 0.012) 3rpx,
-        rgba(26, 26, 46, 0.012) 4rpx
+        rgba(139, 115, 85, 0.02) 3rpx,
+        rgba(139, 115, 85, 0.02) 4rpx
       ),
-      linear-gradient(180deg, rgba(255, 254, 249, 0.95), rgba(250, 248, 243, 0.85));
-    border-color: rgba(91, 127, 149, 0.2);
-    box-shadow: 0 6rpx 24rpx rgba(26, 26, 46, 0.05);
+      linear-gradient(180deg, #fffef8, #f5ede0);
+    border-color: rgba(91, 127, 149, 0.25);
+    box-shadow: 0 8rpx 32rpx rgba(139, 115, 85, 0.08);
   }
 }
 
@@ -1017,6 +1523,72 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 }
 
 // ══════════════════════════════════════
+//  经典重现模式
+// ══════════════════════════════════════
+.classic-paper {
+  min-height: 320rpx;
+}
+
+.classic-input {
+  min-height: 240rpx;
+  line-height: 2.2;
+}
+
+.classic-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  justify-content: center;
+  margin-bottom: 8rpx;
+}
+
+.classic-chip {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 14rpx 28rpx;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1rpx solid rgba(26, 26, 46, 0.1);
+  border-radius: 999rpx;
+  transition: all 0.3s ease;
+  cursor: pointer;
+
+  &:hover {
+    border-color: rgba(199, 62, 29, 0.2);
+    background: rgba(199, 62, 29, 0.04);
+  }
+
+  &.active {
+    background: $ink;
+    border-color: $ink;
+    .classic-chip-title { color: $paper; }
+    .classic-chip-dot { color: rgba(250, 248, 243, 0.4); }
+    .classic-chip-author { color: rgba(250, 248, 243, 0.6); }
+  }
+
+  &:active { transform: scale(0.96); }
+}
+
+.classic-chip-title {
+  font-family: 'Ma Shan Zheng', serif;
+  font-size: 26rpx;
+  color: var(--c-ink-75);
+  letter-spacing: 2rpx;
+}
+
+.classic-chip-dot {
+  font-size: 18rpx;
+  color: $mountain;
+  opacity: 0.3;
+}
+
+.classic-chip-author {
+  font-size: 20rpx;
+  color: $mountain;
+  opacity: 0.5;
+}
+
+// ══════════════════════════════════════
 //  体裁 / 风格选择器
 // ══════════════════════════════════════
 .options {
@@ -1030,33 +1602,17 @@ $ink-faint: rgba(26, 26, 46, 0.04);
   display: flex;
   align-items: center;
   gap: 6rpx;
-  background:
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 28rpx,
-      rgba(26, 26, 46, 0.018) 28rpx,
-      rgba(26, 26, 46, 0.018) 29rpx
-    ),
-    linear-gradient(180deg, #fffef9 0%, #f5f0e6 100%);
-  border: 1rpx solid rgba(26, 26, 46, 0.1);
+  background: linear-gradient(180deg, #fffef8, #f5ede0);
+  border: 1rpx solid rgba(139, 115, 85, 0.1);
   border-radius: 8rpx;
   padding: 20rpx 18rpx;
-  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+  transition: all 0.3s ease;
 
   &:hover {
-    background:
-      repeating-linear-gradient(
-        90deg,
-        transparent,
-        transparent 28rpx,
-        rgba(26, 26, 46, 0.018) 28rpx,
-        rgba(26, 26, 46, 0.018) 29rpx
-      ),
-      linear-gradient(180deg, #fffef9 0%, #f0ebe0 100%);
-    border-color: rgba(91, 127, 149, 0.25);
-    box-shadow: 0 3rpx 12rpx rgba(26, 26, 46, 0.05);
-    transform: translateY(-1rpx);
+    background: linear-gradient(180deg, #fffef8, #f0e8d8);
+    border-color: rgba(91, 127, 149, 0.2);
+    box-shadow: 0 3rpx 12rpx rgba(139, 115, 85, 0.06);
+    transform: translateY(-2rpx);
   }
 }
 
@@ -1242,8 +1798,8 @@ $ink-faint: rgba(26, 26, 46, 0.04);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 72rpx;
-  height: 260rpx;
+  margin-top: 56rpx;
+  height: 240rpx;
 }
 
 .seal-halo {
@@ -1351,7 +1907,6 @@ $ink-faint: rgba(26, 26, 46, 0.04);
   justify-content: center;
   gap: 20rpx;
   margin-top: 24rpx;
-  padding: 0 40rpx;
 }
 
 .quota-line {
@@ -1557,11 +2112,17 @@ $ink-faint: rgba(26, 26, 46, 0.04);
 :root[data-theme="dark"] {
   .page {
     background-color: var(--c-paper);
+    &::before {
+      background:
+        radial-gradient(ellipse 80% 40% at 50% 200rpx, rgba(20, 50, 70, 0.3), transparent),
+        radial-gradient(ellipse 60% 30% at 20% 500rpx, rgba(20, 40, 55, 0.15), transparent),
+        radial-gradient(ellipse 50% 25% at 80% 600rpx, rgba(30, 25, 20, 0.1), transparent) !important;
+    }
   }
 
   /* 头部英雄区 — 月夜山水 */
   .hero-bg {
-    background: linear-gradient(180deg, #0e1520 0%, #162030 40%, #1a2838 70%, #0e1520 100%) !important;
+    background: linear-gradient(180deg, #0e1520 0%, #12202e 25%, #1a2838 55%, #162030 80%, transparent 100%) !important;
   }
   .mountain-far { background: rgba(20, 40, 55, 0.7) !important; }
   .mountain-mid { background: rgba(15, 30, 45, 0.6) !important; }
@@ -1575,26 +2136,33 @@ $ink-faint: rgba(26, 26, 46, 0.04);
   .logo-char { color: #f0ece6 !important; }
   .subtitle { color: rgba(122, 168, 194, 0.7) !important; }
 
-  /* 每日诗签 — 暖烛感 */
-  .daily-card {
-    background: linear-gradient(135deg, #1e2430 0%, #252d3a 100%) !important;
-    border-color: rgba(212, 160, 23, 0.15) !important;
-    box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.3) !important;
+  /* 悬挂书签 — 暗夜纸感 */
+  .bookmark-body {
+    background: linear-gradient(180deg, #2a2a3a 0%, #222230 50%, #1e1e2e 100%) !important;
+    border-color: rgba(232, 228, 223, 0.08) !important;
+    box-shadow: 2px 4px 20px rgba(0, 0, 0, 0.35) !important;
+    &::before { background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent) !important; }
+  }
+  .pin-head {
+    background: radial-gradient(circle at 40% 35%, #8b7355, #5c3a1e 60%, #3a2510) !important;
   }
   .daily-seal { color: var(--c-vermilion); }
-  .daily-label { color: rgba(232, 228, 223, 0.5); }
-  .daily-poem { color: rgba(232, 228, 223, 0.8) !important; }
+  .daily-label { color: rgba(232, 228, 223, 0.4); }
+  .daily-poem { color: rgba(232, 228, 223, 0.75) !important; }
+  .bookmark-tassel { background: linear-gradient(180deg, var(--c-vermilion), rgba(224, 96, 64, 0.2)) !important; }
 
   /* 快捷标签 — 墨色水墨签 */
-  .quick-tag {
-    background: rgba(232, 228, 223, 0.04) !important;
+  .tag {
+    background: rgba(232, 228, 223, 0.06) !important;
     border-color: rgba(232, 228, 223, 0.1) !important;
-    color: rgba(232, 228, 223, 0.6) !important;
+
+    .tag-text { color: rgba(232, 228, 223, 0.55) !important; }
 
     &:hover, &.active {
-      background: rgba(224, 96, 64, 0.1) !important;
+      background: rgba(224, 96, 64, 0.12) !important;
       border-color: rgba(224, 96, 64, 0.3) !important;
-      color: var(--c-vermilion) !important;
+
+      .tag-text { color: var(--c-vermilion) !important; }
     }
   }
 
@@ -1602,10 +2170,16 @@ $ink-faint: rgba(26, 26, 46, 0.04);
   .section-title { color: var(--c-ink) !important; }
   .section-line { background: rgba(232, 228, 223, 0.08) !important; }
 
+  /* 水墨分隔线 */
+  .ink-divider {
+    background: linear-gradient(90deg, transparent, rgba(232, 228, 223, 0.08), rgba(122, 168, 194, 0.1), rgba(232, 228, 223, 0.08), transparent) !important;
+  }
+
   /* 信笺输入区 */
   .letter-paper {
     background: #222230 !important;
-    border-color: rgba(232, 228, 223, 0.08);
+    border-color: rgba(232, 228, 223, 0.08) !important;
+    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.2) !important;
   }
   .letter-line {
     background: linear-gradient(90deg, transparent, rgba(232, 228, 223, 0.06), transparent) !important;
@@ -1680,5 +2254,211 @@ $ink-faint: rgba(26, 26, 46, 0.04);
     border-color: rgba(232, 228, 223, 0.06) !important;
   }
   .stream-text { color: var(--c-ink); }
+
+  /* 模式切换 */
+  .mode-switch {
+    background: rgba(30, 30, 50, 0.7) !important;
+    border-color: rgba(232, 228, 223, 0.12) !important;
+  }
+  .mode-tab.active {
+    background: rgba(224, 96, 64, 0.2) !important;
+    box-shadow: 0 2rpx 12rpx rgba(224, 96, 64, 0.15) !important;
+  }
+  .mode-tab-mark { color: rgba(232, 228, 223, 0.35) !important; }
+  .mode-tab.active .mode-tab-mark { color: var(--c-vermilion) !important; opacity: 1 !important; }
+  .mode-tab-label { color: rgba(232, 228, 223, 0.45) !important; }
+  .mode-tab.active .mode-tab-label { color: rgba(232, 228, 223, 0.95) !important; }
+  .mode-divider { background: rgba(232, 228, 223, 0.1) !important; }
+  .mode-desc { color: rgba(232, 228, 223, 0.3); }
+
+  /* 经典模式 */
+  .classic-chip {
+    background: rgba(232, 228, 223, 0.06) !important;
+    border-color: rgba(232, 228, 223, 0.1) !important;
+
+    .classic-chip-title { color: rgba(232, 228, 223, 0.55) !important; }
+    .classic-chip-dot { color: rgba(232, 228, 223, 0.2) !important; }
+    .classic-chip-author { color: rgba(232, 228, 223, 0.35) !important; }
+
+    &:hover, &.active {
+      background: rgba(224, 96, 64, 0.12) !important;
+      border-color: rgba(224, 96, 64, 0.3) !important;
+      .classic-chip-title { color: var(--c-vermilion) !important; }
+      .classic-chip-author { color: rgba(232, 228, 223, 0.6) !important; }
+    }
+  }
+}
+
+/* ══════════════════════════════════════
+   移动端适配（≤ 768px）
+   ══════════════════════════════════════ */
+@media (max-width: 768px) {
+  // 书签：手机上缩小并固定在右上角
+  .daily-bookmark {
+    position: fixed !important;
+    top: 12px !important;
+    right: 8px !important;
+    left: auto !important;
+    cursor: default; // 手机上不需要拖拽提示
+    // 禁止拖拽（太小没法拖）
+    pointer-events: auto;
+  }
+  .bookmark-body {
+    width: 52px;
+    padding: 18px 8px 14px;
+  }
+  .daily-seal {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+  .daily-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+  .daily-poem {
+    font-size: 14px;
+    letter-spacing: 3px;
+  }
+  .bookmark-tassel {
+    height: 24px;
+    margin-top: 4px;
+  }
+  .pin-head {
+    width: 8px;
+    height: 8px;
+  }
+
+  // Hero 缩小
+  .hero {
+    height: 380rpx;
+    margin-bottom: 16rpx;
+  }
+  .logo-char {
+    font-size: 80rpx;
+  }
+  .subtitle {
+    font-size: 20rpx;
+    letter-spacing: 10rpx;
+    &::before, &::after { width: 40rpx; }
+  }
+
+  // 内容区
+  .content-wrap {
+    padding: 0 24rpx;
+  }
+
+  // 模式切换
+  .mode-section {
+    margin-top: 16rpx;
+    margin-bottom: 24rpx;
+  }
+  .mode-tab {
+    padding: 14rpx 28rpx;
+  }
+  .mode-tab-mark {
+    font-size: 28rpx;
+  }
+  .mode-tab-label {
+    font-size: 22rpx;
+  }
+  .mode-desc {
+    font-size: 20rpx;
+  }
+
+  // 标签
+  .tags {
+    gap: 12rpx;
+  }
+  .tag-text {
+    font-size: 24rpx;
+  }
+
+  // 分隔线
+  .ink-divider {
+    margin: 28rpx 32rpx 0;
+  }
+
+  // 信笺
+  .input-section {
+    margin-top: 28rpx;
+  }
+  .letter-paper {
+    padding: 24rpx 36rpx 36rpx 36rpx;
+    min-height: 160rpx;
+  }
+
+  // 图片上传
+  .image-upload {
+    gap: 12rpx;
+  }
+
+  // 选择器
+  .options {
+    margin-top: 28rpx;
+    gap: 12rpx;
+  }
+  .option-item {
+    padding: 16rpx 14rpx;
+  }
+
+  // 名篇速选
+  .classic-chips {
+    gap: 12rpx;
+  }
+  .classic-chip {
+    padding: 12rpx 22rpx;
+  }
+  .classic-chip-title {
+    font-size: 24rpx;
+  }
+
+  // 生成按钮
+  .generate-wrap {
+    margin-top: 40rpx;
+    height: 200rpx;
+  }
+
+  // 剩余次数
+  .quota-hint {
+    margin-top: 16rpx;
+  }
+}
+
+/* 极小屏（≤ 375px，如 iPhone SE） */
+@media (max-width: 375px) {
+  .bookmark-body {
+    width: 44px;
+    padding: 14px 6px 10px;
+  }
+  .daily-poem {
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+  .daily-seal {
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    margin-bottom: 6px;
+  }
+  .daily-label {
+    font-size: 8px;
+  }
+  .bookmark-tassel {
+    height: 18px;
+  }
+
+  .hero {
+    height: 320rpx;
+  }
+  .logo-char {
+    font-size: 68rpx;
+  }
+
+  .mode-tab {
+    padding: 12rpx 22rpx;
+  }
 }
 </style>
