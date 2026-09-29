@@ -141,6 +141,14 @@ export interface RenderOptions {
     /** 落款纵向偏移（像素） */
     offsetY?: number
   }
+  /** 自定义画布宽度（像素），覆盖模板宽度 */
+  customWidth?: number
+  /** 自定义画布高度（像素），覆盖模板高度 */
+  customHeight?: number
+  /** 列间距缩放比例，默认 1.0（基准 = fontSize × 1.8） */
+  colSpacingScale?: number
+  /** 字间距缩放比例，默认 1.0（基准 = fontSize × 1.4） */
+  charSpacingScale?: number
   /** 字号缩放比例，默认 1.0，范围 0.6 ~ 1.6 */
   fontScale?: number
   /** 边框样式 */
@@ -185,8 +193,8 @@ export function renderCalligraphyCard(
   const fontInfo = CALLIGRAPHY_FONTS[options.font]
   const { poem } = options
 
-  const W = tmpl.width
-  const H = tmpl.height
+  const W = options.customWidth ?? tmpl.width
+  const H = options.customHeight ?? tmpl.height
 
   const textureIntensity = options.textureIntensity ?? 'medium'
   const textureType = options.textureType ?? 'mian-xian-wei'
@@ -208,7 +216,9 @@ export function renderCalligraphyCard(
   drawBorder(ctx, W, H, bg.textColor, borderStyle)
 
   // 3. 绘制诗词正文（竖排）— 应用偏移，返回正文区域信息
-  const poemLayout = drawVerticalPoem(ctx, W, H, poem.content, fontInfo.cssFontFamily, bg.textColor, fontScale, ox, oy)
+  const colSpacingScale = clamp(options.colSpacingScale ?? 1.0, 0.5, 2.0)
+  const charSpacingScale = clamp(options.charSpacingScale ?? 1.0, 0.5, 2.0)
+  const poemLayout = drawVerticalPoem(ctx, W, H, poem.content, fontInfo.cssFontFamily, bg.textColor, fontScale, ox, oy, colSpacingScale, charSpacingScale)
 
   // 4. 绘制传统落款（诗题 + 书者 + 日期，竖排在正文左侧）
   const colophon = options.colophon ?? {}
@@ -941,6 +951,8 @@ function drawVerticalPoem(
   fontScale: number = 1.0,
   offsetX: number = 0,
   offsetY: number = 0,
+  colSpacingScale: number = 1.0,
+  charSpacingScale: number = 1.0,
 ): PoemLayout {
   const cleanLines = lines.map(l => l.replace(/[，。；！？、,\.;!\?]/g, '').trim())
   const maxChars = Math.max(...cleanLines.map(l => [...l].length))
@@ -957,8 +969,8 @@ function drawVerticalPoem(
   )
 
   const fontSize = Math.floor(baseFontSize * fontScale)
-  const colSpacing = fontSize * 1.8
-  const charSpacing = fontSize * 1.4
+  const colSpacing = fontSize * 1.8 * colSpacingScale
+  const charSpacing = fontSize * 1.4 * charSpacingScale
 
   const totalW = numCols * colSpacing
   const totalH = maxChars * charSpacing

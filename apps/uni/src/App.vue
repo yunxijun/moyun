@@ -96,7 +96,7 @@ a, button, [class*="btn"], [class*="seal"], [class*="tag"], [class*="menu-item"]
 /* -- 全局基础 -- */
 page {
   background-color: var(--c-paper);
-  font-family: 'PingFang SC', 'Microsoft YaHei', -apple-system, sans-serif;
+  font-family: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', 'PingFang SC', 'Microsoft YaHei', serif;
   color: var(--c-ink);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
