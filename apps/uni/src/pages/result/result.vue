@@ -156,8 +156,18 @@
             </div>
           </div>
 
-          <!-- 场景模拟（书房全景） -->
-          <div v-if="preview3DMode === 'scene'" class="scene3d-container" ref="scene3dRef" @wheel.stop />
+          <!-- 场景模拟 -->
+          <div v-if="preview3DMode === 'scene'" class="frame3d-wrap" @wheel.stop>
+            <div class="scene3d-container" ref="scene3dRef" />
+            <div class="scene-selector">
+              <div v-for="s in SCENE_LIST" :key="s.key"
+                class="scene-chip" :class="{ active: currentSceneKey === s.key }"
+                @click.stop="switchScene(s.key)">
+                <text class="scene-chip-icon">{{ s.icon }}</text>
+                <text class="scene-chip-label">{{ s.label }}</text>
+              </div>
+            </div>
+          </div>
         </view>
       </view>
 
@@ -1416,6 +1426,23 @@ let threeFrameGroup: any = null
 let threeScene: any = null
 let threeModule: any = null
 
+// ── 多场景系统 ──
+const SCENE_LIST = [
+  { key: 'study', label: '书房', icon: '📚' },
+  { key: 'gallery', label: '展厅', icon: '🏛' },
+  { key: 'living', label: '客厅', icon: '🛋' },
+  { key: 'tea', label: '茶室', icon: '🍵' },
+]
+const currentSceneKey = ref('study')
+
+async function switchScene(key: string) {
+  if (currentSceneKey.value === key) return
+  currentSceneKey.value = key
+  if (threeCleanup) { threeCleanup(); threeCleanup = null }
+  await nextTick()
+  await init3DScene()
+}
+
 async function switchToFlat() {
   if (threeCleanup) { threeCleanup(); threeCleanup = null }
   preview3DMode.value = 'flat'
@@ -1467,9 +1494,15 @@ function rebuild3DTexture() {
   if (!threeModule || !threeFrameGroup || !threeScene || !canvasEl) return
   const THREE = threeModule
 
-  // 创建新贴图
+  // 创建新贴图（高清设置）
   const newTexture = new THREE.CanvasTexture(canvasEl)
   newTexture.colorSpace = THREE.SRGBColorSpace
+  newTexture.minFilter = THREE.LinearFilter
+  newTexture.magFilter = THREE.LinearFilter
+  newTexture.generateMipmaps = false
+  if (threeRenderer) {
+    newTexture.anisotropy = threeRenderer.capabilities.getMaxAnisotropy()
+  }
   newTexture.needsUpdate = true
 
   // 计算新比例
@@ -1513,54 +1546,110 @@ async function init3DFrame() {
   if (cardCanvas) {
     cardTexture = new THREE.CanvasTexture(cardCanvas)
     cardTexture.colorSpace = THREE.SRGBColorSpace
+    cardTexture.minFilter = THREE.LinearFilter
+    cardTexture.magFilter = THREE.LinearFilter
+    cardTexture.generateMipmaps = false
     cardTexture.needsUpdate = true
   }
   const artAspect = cardCanvas ? cardCanvas.height / cardCanvas.width : 1.4
   const artW = 2.0, artH = artW * artAspect
 
-  // 程序化木纹纹理
+  // 程序化纹理工具
   function mkTex3D(sz: number, draw: (cx: CanvasRenderingContext2D, s: number) => void) {
     const c = document.createElement('canvas')
     c.width = c.height = sz
     draw(c.getContext('2d')!, sz)
     const t = new THREE.CanvasTexture(c)
+    t.colorSpace = THREE.SRGBColorSpace
     t.wrapS = t.wrapT = THREE.RepeatWrapping
     return t
   }
 
   const woodTex = mkTex3D(512, (cx, s) => {
-    cx.fillStyle = '#4a2010'
-    cx.fillRect(0, 0, s, s)
-    for (let i = 0; i < 150; i++) {
+    // 底色：深红木
+    const bg = cx.createLinearGradient(0, 0, s, s * 0.3)
+    bg.addColorStop(0, '#3a1808'); bg.addColorStop(0.5, '#4a2010'); bg.addColorStop(1, '#3a1808')
+    cx.fillStyle = bg; cx.fillRect(0, 0, s, s)
+    // 年轮纹：多层弯曲线条
+    for (let i = 0; i < 200; i++) {
       const y = Math.random() * s
-      cx.strokeStyle = `rgba(${30 + Math.random() * 30},${12 + Math.random() * 18},${5 + Math.random() * 10},${0.1 + Math.random() * 0.2})`
-      cx.lineWidth = 0.5 + Math.random() * 3
+      const amp = 1.5 + Math.random() * 5
+      const freq = 0.008 + Math.random() * 0.015
+      const phase = Math.random() * Math.PI * 2
+      cx.strokeStyle = `rgba(${25 + Math.random() * 35},${10 + Math.random() * 20},${3 + Math.random() * 12},${0.08 + Math.random() * 0.18})`
+      cx.lineWidth = 0.3 + Math.random() * 2.5
       cx.beginPath(); cx.moveTo(0, y)
-      for (let x = 0; x < s; x += 12) cx.lineTo(x, y + Math.sin(x * 0.012 + i * 0.5) * (2 + Math.random() * 4))
+      for (let x = 0; x < s; x += 8) cx.lineTo(x, y + Math.sin(x * freq + phase) * amp + Math.sin(x * 0.003) * 8)
       cx.stroke()
     }
+    // 木节（偶尔出现的深色圆斑）
+    for (let i = 0; i < 3; i++) {
+      const kx = 80 + Math.random() * (s - 160)
+      const ky = 80 + Math.random() * (s - 160)
+      const kr = 8 + Math.random() * 15
+      const kg = cx.createRadialGradient(kx, ky, 0, kx, ky, kr)
+      kg.addColorStop(0, 'rgba(20,8,2,0.4)'); kg.addColorStop(1, 'rgba(20,8,2,0)')
+      cx.fillStyle = kg; cx.fillRect(kx - kr, ky - kr, kr * 2, kr * 2)
+    }
+    // 高光丝纹
+    cx.globalAlpha = 0.04
+    for (let i = 0; i < 50; i++) {
+      const y = Math.random() * s
+      cx.strokeStyle = '#ffd8a0'; cx.lineWidth = 0.5
+      cx.beginPath(); cx.moveTo(0, y); cx.lineTo(s, y + (Math.random() - 0.5) * 10); cx.stroke()
+    }
+    cx.globalAlpha = 1
   })
 
-  const goldTex = mkTex3D(256, (cx, s) => {
+  const goldTex = mkTex3D(512, (cx, s) => {
+    // 多方向金属渐变
     const g = cx.createLinearGradient(0, 0, s, s)
-    g.addColorStop(0, '#9a7209'); g.addColorStop(0.2, '#e8b820')
-    g.addColorStop(0.4, '#ffd700'); g.addColorStop(0.6, '#c49a1a')
-    g.addColorStop(0.8, '#daa520'); g.addColorStop(1, '#b8860b')
+    g.addColorStop(0, '#8a6508'); g.addColorStop(0.12, '#c49a1a')
+    g.addColorStop(0.28, '#ffd700'); g.addColorStop(0.42, '#e8b820')
+    g.addColorStop(0.55, '#b8960b'); g.addColorStop(0.68, '#daa520')
+    g.addColorStop(0.82, '#ffd700'); g.addColorStop(1, '#9a7209')
     cx.fillStyle = g; cx.fillRect(0, 0, s, s)
-    for (let i = 0; i < 80; i++) {
-      cx.fillStyle = `rgba(255,245,200,${0.02 + Math.random() * 0.06})`
-      cx.fillRect(Math.random() * s, Math.random() * s, s, 1)
+    // 拉丝纹（水平）
+    for (let i = 0; i < 300; i++) {
+      const y = Math.random() * s
+      cx.strokeStyle = `rgba(255,245,200,${0.02 + Math.random() * 0.05})`
+      cx.lineWidth = 0.3 + Math.random()
+      cx.beginPath(); cx.moveTo(0, y); cx.lineTo(s, y + (Math.random() - 0.5) * 3); cx.stroke()
+    }
+    // 微斑点（锤纹质感）
+    for (let i = 0; i < 100; i++) {
+      const px = Math.random() * s, py = Math.random() * s
+      cx.fillStyle = `rgba(${180 + Math.random() * 75},${140 + Math.random() * 60},${Math.random() * 30},${0.03 + Math.random() * 0.06})`
+      cx.beginPath(); cx.arc(px, py, 1 + Math.random() * 4, 0, Math.PI * 2); cx.fill()
     }
   })
 
-  const bambooTex = mkTex3D(256, (cx, s) => {
+  const bambooTex = mkTex3D(512, (cx, s) => {
+    // 竹面底色
     const g = cx.createLinearGradient(0, 0, 0, s)
-    g.addColorStop(0, '#d4c48a'); g.addColorStop(0.3, '#b5a568')
-    g.addColorStop(0.5, '#a89555'); g.addColorStop(0.7, '#b5a568'); g.addColorStop(1, '#c8b87a')
+    g.addColorStop(0, '#d4c48a'); g.addColorStop(0.15, '#c8b87a')
+    g.addColorStop(0.3, '#b5a568'); g.addColorStop(0.5, '#a89555')
+    g.addColorStop(0.7, '#b5a568'); g.addColorStop(0.85, '#c8b87a'); g.addColorStop(1, '#d4c48a')
     cx.fillStyle = g; cx.fillRect(0, 0, s, s)
-    cx.strokeStyle = 'rgba(80,60,20,0.15)'; cx.lineWidth = 3
-    cx.beginPath(); cx.moveTo(0, s * 0.35); cx.lineTo(s, s * 0.35); cx.stroke()
-    cx.beginPath(); cx.moveTo(0, s * 0.68); cx.lineTo(s, s * 0.68); cx.stroke()
+    // 纵向纤维纹
+    for (let i = 0; i < 200; i++) {
+      const x = Math.random() * s
+      cx.strokeStyle = `rgba(${100 + Math.random() * 40},${80 + Math.random() * 30},${30 + Math.random() * 20},${0.03 + Math.random() * 0.06})`
+      cx.lineWidth = 0.3 + Math.random()
+      cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x + (Math.random() - 0.5) * 5, s); cx.stroke()
+    }
+    // 竹节（两道深色环带）
+    for (const ny of [0.33, 0.66]) {
+      const ny0 = s * ny
+      const ng = cx.createLinearGradient(0, ny0 - 6, 0, ny0 + 6)
+      ng.addColorStop(0, 'rgba(80,60,20,0)'); ng.addColorStop(0.3, 'rgba(80,60,20,0.15)')
+      ng.addColorStop(0.5, 'rgba(80,60,20,0.22)'); ng.addColorStop(0.7, 'rgba(80,60,20,0.15)')
+      ng.addColorStop(1, 'rgba(80,60,20,0)')
+      cx.fillStyle = ng; cx.fillRect(0, ny0 - 6, s, 12)
+      // 节上高光
+      cx.strokeStyle = 'rgba(255,255,230,0.08)'; cx.lineWidth = 1
+      cx.beginPath(); cx.moveTo(0, ny0 - 2); cx.lineTo(s, ny0 - 2); cx.stroke()
+    }
   })
 
   // ── 场景（纯净背景 + 可选网格，适配深色模式） ──
@@ -1595,7 +1684,7 @@ async function init3DFrame() {
   camera.lookAt(0, 0, 0)
   threeCamera = camera
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true })
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true, logarithmicDepthBuffer: true })
   renderer.setSize(w, h)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   renderer.shadowMap.enabled = true
@@ -1606,6 +1695,13 @@ async function init3DFrame() {
   el.innerHTML = ''
   el.appendChild(renderer.domElement)
   threeRenderer = renderer
+
+  // 画作贴图启用各向异性过滤（斜角观看更清晰）
+  if (cardTexture) {
+    const maxAniso = renderer.capabilities.getMaxAnisotropy()
+    cardTexture.anisotropy = maxAniso
+    cardTexture.needsUpdate = true
+  }
 
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true
@@ -1679,28 +1775,31 @@ async function init3DFrame() {
       matBoard.position.z = -0.001
       frameGroup.add(matBoard)
 
-      // 四条框边（用 BoxGeometry 模拟真实框剖面，带厚度）
+      // 四条框边（角落不重叠：上下全宽，左右缩短）
       const outerW = artW + matPad * 2 + fPad * 2
-      const outerH = artH + matPad * 2 + fPad * 2
-      // 上框
+      const innerH = artH + matPad * 2  // 左右框条只覆盖内侧高度
+      // 上框（全宽）
       const topBar = new THREE.Mesh(new THREE.BoxGeometry(outerW, fPad, fDepth), frameMat)
       topBar.position.set(0, (artH + matPad * 2 + fPad) / 2, fDepth / 2 - 0.01)
       topBar.castShadow = true; frameGroup.add(topBar)
-      // 下框
+      // 下框（全宽）
       const botBar = new THREE.Mesh(new THREE.BoxGeometry(outerW, fPad, fDepth), frameMat)
       botBar.position.set(0, -(artH + matPad * 2 + fPad) / 2, fDepth / 2 - 0.01)
       botBar.castShadow = true; frameGroup.add(botBar)
-      // 左框
-      const leftBar = new THREE.Mesh(new THREE.BoxGeometry(fPad, outerH, fDepth), frameMat)
+      // 左框（高度缩短，不与上下重叠）
+      const leftBar = new THREE.Mesh(new THREE.BoxGeometry(fPad, innerH, fDepth), frameMat)
       leftBar.position.set(-(artW + matPad * 2 + fPad) / 2, 0, fDepth / 2 - 0.01)
       leftBar.castShadow = true; frameGroup.add(leftBar)
-      // 右框
-      const rightBar = new THREE.Mesh(new THREE.BoxGeometry(fPad, outerH, fDepth), frameMat)
+      // 右框（同上）
+      const rightBar = new THREE.Mesh(new THREE.BoxGeometry(fPad, innerH, fDepth), frameMat)
       rightBar.position.set((artW + matPad * 2 + fPad) / 2, 0, fDepth / 2 - 0.01)
       rightBar.castShadow = true; frameGroup.add(rightBar)
 
       // 内倒角（深色阴影面，模拟框内斜面）
-      const innerShadowMat = new THREE.MeshStandardMaterial({ color: 0x1a1008, roughness: 0.8, metalness: 0 })
+      const innerShadowMat = new THREE.MeshStandardMaterial({
+        color: 0x1a1008, roughness: 0.8, metalness: 0,
+        polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
+      })
       const isDepth = 0.015
       // 上内倒角
       const tiBar = new THREE.Mesh(new THREE.BoxGeometry(artW + matPad * 2, isDepth, matDepth + 0.005), innerShadowMat)
@@ -2181,6 +2280,167 @@ async function init3DScene() {
   buildFrame(currentMount.value)
   threeBuildFrame = buildFrame
 
+  // ══ 场景家具（根据 currentSceneKey 分流） ══
+  const sceneKey = currentSceneKey.value
+
+  if (sceneKey === 'gallery') {
+    // ── 展厅：纯白空间 + 射灯聚焦 ──
+    // 白色调墙面
+    const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf8f8f8, roughness: 0.95 })
+    for (const child of [gBack, gLeft, gRight, gCeil]) {
+      ;(child as any).material = whiteMat
+    }
+    gFloor.material = new THREE.MeshStandardMaterial({ color: 0xd0ccc4, roughness: 0.8 })
+
+    // 画作射灯（从上方打下）
+    const artSpot = new THREE.SpotLight(0xfff8ee, 1.2, 6, Math.PI / 10, 0.5, 1)
+    artSpot.position.set(0, artCY + 2, artZ + 2)
+    artSpot.target.position.set(0, artCY, artZ)
+    artSpot.castShadow = true; scene.add(artSpot); scene.add(artSpot.target)
+
+    // 导览台
+    const pedMat = new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.85 })
+    const pedestal = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.0, 0.5), pedMat)
+    pedestal.position.set(0, floorY + 0.5, 0.8); pedestal.castShadow = true; scene.add(pedestal)
+    // 说明牌
+    const label = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.35, 0.02),
+      new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.6 }))
+    label.position.set(0, floorY + 1.05, 0.8); label.rotation.x = -0.3; scene.add(label)
+
+    // 旁边的雕塑底座
+    const base2 = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.28, 0.9, 16), pedMat)
+    base2.position.set(-2.5, floorY + 0.45, -1); base2.castShadow = true; scene.add(base2)
+    // 抽象雕塑
+    const sculpGeo = new THREE.TorusKnotGeometry(0.15, 0.05, 64, 12, 2, 3)
+    const sculp = new THREE.Mesh(sculpGeo, new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.3, metalness: 0.4 }))
+    sculp.position.set(-2.5, floorY + 1.1, -1); sculp.castShadow = true; scene.add(sculp)
+
+    // 对面墙挂另一幅作品（装饰用）
+    const auxFrame2 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.6, 0.03),
+      new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.5 }))
+    auxFrame2.rotation.y = Math.PI / 2
+    auxFrame2.position.set(-RW / 2 + 0.05, floorY + 2.2, -1.5); scene.add(auxFrame2)
+    const auxSpot = new THREE.SpotLight(0xfff8ee, 0.6, 5, Math.PI / 12, 0.4, 1)
+    auxSpot.position.set(-RW / 2 + 0.5, floorY + 3.5, -1.5)
+    auxSpot.target.position.copy(auxFrame2.position)
+    scene.add(auxSpot); scene.add(auxSpot.target)
+
+  } else if (sceneKey === 'living') {
+    // ── 客厅：现代简约 ──
+    // 浅灰木地板
+    gFloor.material = new THREE.MeshStandardMaterial({ color: 0xc4b89a, roughness: 0.75 })
+
+    // 沙发（简约造型）
+    const sofaMat = new THREE.MeshStandardMaterial({ color: 0x6b7b8a, roughness: 0.85 })
+    // 座垫
+    const sofaSeat = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.3, 0.9), sofaMat)
+    sofaSeat.position.set(0, floorY + 0.35, 1.8); sofaSeat.castShadow = true; scene.add(sofaSeat)
+    // 靠背
+    const sofaBack = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.6, 0.15), sofaMat)
+    sofaBack.position.set(0, floorY + 0.65, 2.2); scene.add(sofaBack)
+    // 扶手
+    for (const sx of [-1.2, 1.2]) {
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.45, 0.9), sofaMat)
+      arm.position.set(sx, floorY + 0.5, 1.8); scene.add(arm)
+    }
+    // 沙发腿
+    for (const [lx, lz] of [[-1.1, 1.4], [1.1, 1.4], [-1.1, 2.2], [1.1, 2.2]]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.2, 8),
+        new THREE.MeshStandardMaterial({ color: 0x2a2a2a, metalness: 0.3 }))
+      leg.position.set(lx, floorY + 0.1, lz); scene.add(leg)
+    }
+
+    // 茶几
+    const tableMat = new THREE.MeshStandardMaterial({ color: 0xf0e8d5, roughness: 0.6, metalness: 0.05 })
+    const table = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.04, 0.6), tableMat)
+    table.position.set(0, floorY + 0.4, 0.9); table.castShadow = true; scene.add(table)
+    // 茶几腿（金属）
+    const tLegMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.3, metalness: 0.6 })
+    for (const [lx, lz] of [[-0.5, 0.65], [0.5, 0.65], [-0.5, 1.15], [0.5, 1.15]]) {
+      const tl = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.4, 8), tLegMat)
+      tl.position.set(lx, floorY + 0.2, lz); scene.add(tl)
+    }
+
+    // 落地灯
+    const lampMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4, metalness: 0.3 })
+    const lampPole = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.8, 8), lampMat)
+    lampPole.position.set(1.8, floorY + 0.9, 1.5); scene.add(lampPole)
+    const lampShade = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.25, 0.3, 16),
+      new THREE.MeshStandardMaterial({ color: 0xf5e8d0, roughness: 0.9 }))
+    lampShade.position.set(1.8, floorY + 1.85, 1.5); scene.add(lampShade)
+    const lampLight = new THREE.PointLight(0xfff0dd, 0.3, 4)
+    lampLight.position.set(1.8, floorY + 1.7, 1.5); scene.add(lampLight)
+
+    // 地毯
+    const rugMat = new THREE.MeshStandardMaterial({ color: 0xb0a090, roughness: 0.95 })
+    const rug = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 2.0), rugMat)
+    rug.rotation.x = -Math.PI / 2; rug.position.set(0, floorY + 0.005, 1.2); scene.add(rug)
+
+  } else if (sceneKey === 'tea') {
+    // ── 茶室：日式/中式茶空间 ──
+    // 榻榻米地面
+    gFloor.material = new THREE.MeshStandardMaterial({ color: 0xc8b87a, roughness: 0.9 })
+    // 墙面改为和纸色
+    const wasiMat = new THREE.MeshStandardMaterial({ color: 0xf0e8d5, roughness: 0.92 })
+    for (const child of [gBack, gLeft, gRight]) {
+      ;(child as any).material = wasiMat
+    }
+
+    // 矮桌
+    const tataMat = new THREE.MeshStandardMaterial({ color: 0x5c3a1e, roughness: 0.55 })
+    const tataTable = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.03, 0.6), tataMat)
+    tataTable.position.set(0, floorY + 0.32, 0.5); tataTable.castShadow = true; scene.add(tataTable)
+    for (const [lx, lz] of [[-0.4, 0.25], [0.4, 0.25], [-0.4, 0.75], [0.4, 0.75]]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.3, 0.03), tataMat)
+      leg.position.set(lx, floorY + 0.16, lz); scene.add(leg)
+    }
+
+    // 茶具组（壶 + 杯）
+    const tY = floorY + 0.34
+    const teaMat2 = new THREE.MeshStandardMaterial({ color: 0x7a4428, roughness: 0.6 })
+    const teaPot = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 12), teaMat2)
+    teaPot.scale.y = 0.7; teaPot.position.set(0, tY + 0.04, 0.5); scene.add(teaPot)
+    const teaLid = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 8), teaMat2)
+    teaLid.scale.y = 0.5; teaLid.position.set(0, tY + 0.08, 0.5); scene.add(teaLid)
+    // 小杯子
+    const cupMat = new THREE.MeshStandardMaterial({ color: 0xd4c8a8, roughness: 0.4 })
+    for (const cx of [-0.15, 0.15, -0.25, 0.25]) {
+      const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.018, 0.035, 12), cupMat)
+      cup.position.set(cx, tY + 0.02, 0.35 + (Math.abs(cx) > 0.2 ? 0.1 : 0)); scene.add(cup)
+    }
+
+    // 蒲团
+    const putuanMat = new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 0.85 })
+    for (const pz of [-0.1, 1.1]) {
+      const putuan = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.08, 16), putuanMat)
+      putuan.position.set(0, floorY + 0.04, pz); scene.add(putuan)
+    }
+
+    // 花瓶（角落）
+    const vaseGeo2 = new THREE.LatheGeometry([
+      new THREE.Vector2(0, 0), new THREE.Vector2(0.05, 0.02),
+      new THREE.Vector2(0.07, 0.1), new THREE.Vector2(0.04, 0.2),
+      new THREE.Vector2(0.03, 0.25)
+    ], 16)
+    const vase2 = new THREE.Mesh(vaseGeo2, new THREE.MeshStandardMaterial({ color: 0x6b9e8a, roughness: 0.3, metalness: 0.15 }))
+    vase2.position.set(2.5, floorY, -2.5); vase2.castShadow = true; scene.add(vase2)
+
+    // 竹帘窗（用竹框代替原窗）
+    const bambooMat = new THREE.MeshStandardMaterial({ color: 0xb5a568, roughness: 0.6 })
+    const bambooFrame = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.8, 1.4), bambooMat)
+    bambooFrame.rotation.y = -Math.PI / 2
+    bambooFrame.position.set(RW / 2 - 0.03, floorY + 1.8, -0.5); scene.add(bambooFrame)
+
+    // 挂画下方放一个小香炉
+    const xiang = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.025, 12),
+      new THREE.MeshStandardMaterial({ color: 0x6b6b5a, roughness: 0.4, metalness: 0.3 }))
+    xiang.position.set(0, floorY + 0.01, -RD / 2 + 0.5); scene.add(xiang)
+    const xiangLight = new THREE.PointLight(0xffaa44, 0.1, 2)
+    xiangLight.position.set(0, floorY + 0.1, -RD / 2 + 0.5); scene.add(xiangLight)
+
+  } else {
+  // ── 书房（默认，原有家具） ──
+
   // ── 明式书桌 ──
   const deskY = floorY + 0.85
   const dW = 2.4, dD = 0.9, dTH = 0.05
@@ -2341,6 +2601,8 @@ async function init3DScene() {
   })
   const auxArt = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.5), new THREE.MeshStandardMaterial({ map: auxTex, roughness: 0.7 }))
   auxArt.rotation.y = -Math.PI / 2; auxArt.position.set(RW / 2 - 0.04, floorY + 2.5, -2.0); scene.add(auxArt)
+
+  } // end of scene branching (study/gallery/living/tea)
 
   // ── 动画 ──
   let running = true
@@ -3320,6 +3582,39 @@ $breakpoint: 768px;
   flex: 1;
   min-height: 0;
 }
+.scene-selector {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(6px);
+}
+.scene-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+  &:hover { background: rgba(0,0,0,0.06); }
+  &.active {
+    color: #fff;
+    background: #5b7f95;
+  }
+}
+.scene-chip-icon { font-size: 14px; }
+.scene-chip-label { white-space: nowrap; }
+
 .frame3d-toolbar {
   position: absolute;
   bottom: 12px;
@@ -5030,6 +5325,14 @@ $breakpoint: 768px;
     background: rgba(40,40,46,0.8);
     &:hover { background: rgba(50,50,58,0.9); color: #ccc; }
     &.active { color: #7aadca; }
+  }
+  .scene-selector {
+    background: rgba(30,30,36,0.8);
+  }
+  .scene-chip {
+    color: #aaa;
+    &:hover { background: rgba(255,255,255,0.08); }
+    &.active { color: #fff; background: #5b7f95; }
   }
   .record-settings {
     background: rgba(30,30,36,0.92);
