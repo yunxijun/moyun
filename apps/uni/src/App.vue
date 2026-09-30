@@ -46,6 +46,14 @@ function registerPWA() {
     link.href = '/static/icon-192.svg'
     document.head.appendChild(link)
   }
+  // favicon
+  if (!document.querySelector('link[rel="icon"]')) {
+    const link = document.createElement('link')
+    link.rel = 'icon'
+    link.type = 'image/svg+xml'
+    link.href = '/static/favicon.svg'
+    document.head.appendChild(link)
+  }
 }
 
 function initInkRipple() {
