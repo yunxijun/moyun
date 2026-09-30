@@ -740,29 +740,24 @@ async function onGenerate() {
     const decoder = new TextDecoder()
     let buffer = ''
 
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
+    let gotDone = false
 
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop() || ''
+    function handleSSELine(line: string) {
+      if (!line.startsWith('data: ')) return
+      const jsonStr = line.slice(6).trim()
+      if (!jsonStr) return
 
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue
-        const jsonStr = line.slice(6).trim()
-        if (!jsonStr) continue
-
-        try {
-          const evt = JSON.parse(jsonStr)
-          if (evt.type === 'token') {
-            streamingText.value += evt.content
-          } else if (evt.type === 'done') {
-            streamingDone.value = true
-            if (evt.quota) {
-              quotaRemaining.value = evt.quota.remaining
-            }
-            await new Promise(r => setTimeout(r, 800))
+      try {
+        const evt = JSON.parse(jsonStr)
+        if (evt.type === 'token') {
+          streamingText.value += evt.content
+        } else if (evt.type === 'done') {
+          gotDone = true
+          streamingDone.value = true
+          if (evt.quota) {
+            quotaRemaining.value = evt.quota.remaining
+          }
+          setTimeout(() => {
             loading.value = false
             uni.setStorageSync('moyun_nav_poem', JSON.stringify(evt.poem))
             uni.setStorageSync('moyun_nav_input', JSON.stringify({
@@ -772,19 +767,33 @@ async function onGenerate() {
               images: uploadedImages.value,
             }))
             uni.navigateTo({ url: '/pages/result/result?from=storage' })
-            return
-          } else if (evt.type === 'error') {
-            loading.value = false
-            uni.showToast({ title: evt.message, icon: 'none' })
-            return
-          }
-        } catch (_) {}
-      }
+          }, 800)
+        } else if (evt.type === 'error') {
+          gotDone = true
+          loading.value = false
+          uni.showToast({ title: evt.message, icon: 'none' })
+        }
+      } catch (_) {}
     }
 
-    // 如果流结束但没收到 done 事件
-    loading.value = false
-    uni.showToast({ title: '生成异常，请重试', icon: 'none' })
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+
+      for (const line of lines) handleSSELine(line)
+    }
+
+    // 流结束后处理 buffer 中残留的最后一条消息
+    if (buffer.trim()) handleSSELine(buffer.trim())
+
+    if (!gotDone) {
+      loading.value = false
+      uni.showToast({ title: '生成异常，请重试', icon: 'none' })
+    }
   } catch (err) {
     loading.value = false
     uni.showToast({ title: '网络异常，请重试', icon: 'none' })
