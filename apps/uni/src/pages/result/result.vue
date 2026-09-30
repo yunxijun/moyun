@@ -1779,7 +1779,24 @@ function startRecording3D() {
   const canvas = el?.querySelector('canvas') as HTMLCanvasElement
   if (!canvas) return
 
-  // 按比例放大分辨率（保持宽高比不变，通过 renderer 设置）
+  // 查找选中的格式并检查浏览器支持
+  const fmt = FORMAT_MAP.find(f => f.key === recordFormat.value)
+  const mimeType = fmt?.mime || 'video/webm'
+  const ext = fmt?.ext || 'webm'
+
+  if (!MediaRecorder.isTypeSupported(mimeType)) {
+    // 自动降级到浏览器支持的格式
+    const fallback = FORMAT_MAP.find(f => MediaRecorder.isTypeSupported(f.mime))
+    if (!fallback) {
+      uni.showToast({ title: '当前浏览器不支持视频录制', icon: 'none' })
+      return
+    }
+    uni.showToast({ title: `${fmt?.label} 不支持，已切换为 ${fallback.label}`, icon: 'none' })
+    recordFormat.value = fallback.key
+    return startRecording3D()
+  }
+
+  // 按比例放大分辨率
   const res = resolutionOptions.find(r => r.key === recordResolution.value)
   const scale = res?.scale || 1
   const baseW = el.clientWidth
@@ -1790,22 +1807,25 @@ function startRecording3D() {
     threeRenderer.setSize(baseW, baseH)
   }
 
-  // 查找选中的格式
-  const fmt = FORMAT_MAP.find(f => f.key === recordFormat.value)
-  const mimeType = fmt?.mime || 'video/webm'
-  const ext = fmt?.ext || 'webm'
   const bps = qualityOptions.find(q => q.key === recordQuality.value)?.bps || 5_000_000
 
-  // 开始录制
   const stream = canvas.captureStream(recordFPS.value)
-  mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: bps })
+  try {
+    mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: bps })
+  } catch (e) {
+    console.error('MediaRecorder 创建失败:', e)
+    uni.showToast({ title: '录制初始化失败', icon: 'none' })
+    return
+  }
   recordChunks = []
 
   mediaRecorder.ondataavailable = (e) => {
     if (e.data.size > 0) recordChunks.push(e.data)
   }
   mediaRecorder.onstop = () => {
+    if (recordChunks.length === 0) return
     const blob = new Blob(recordChunks, { type: mimeType })
+    if (blob.size < 1000) { recordChunks = []; return }
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -1821,7 +1841,6 @@ function startRecording3D() {
   recordSeconds.value = 0
   autoRotateActive = recordAutoRotate.value
 
-  // 计时
   recordTimer = setInterval(() => {
     recordSeconds.value++
   }, 1000)
@@ -3591,6 +3610,7 @@ watch(
   async () => {
     await renderCard()
     if (showSharePanel.value) updatePosterPreview()
+    updateFavoriteSettings()
   },
 )
 
@@ -3724,45 +3744,66 @@ function onPreviewInputImage(idx: number) {
 /* ── 收藏功能 ── */
 const FAVORITES_KEY = 'moyun_favorites'
 const isFavorited = ref(false)
+const favRecordId = ref('')
 
 function getFavorites(): any[] {
   try { return JSON.parse(uni.getStorageSync(FAVORITES_KEY) || '[]') } catch { return [] }
 }
 
+function buildFavSettings() {
+  return {
+    bg: currentBg.value,
+    border: currentBorder.value,
+    texture: currentTexture.value,
+    textureType: currentTextureType.value,
+    textureStrength: textureStrength.value,
+    fontScale: fontScale.value,
+    stampText: stampText.value,
+    stampSize: stampSizeVal.value,
+    stampShape: stampShape.value,
+    stampPosition: stampPosition.value,
+    stampFont: stampFontKey.value,
+  }
+}
+
 function checkFavorited() {
   const favs = getFavorites()
-  isFavorited.value = favs.some((f: any) => f.poem.title === poem.value.title && f.poem.content?.join('') === poem.value.content?.join(''))
+  const found = favs.find((f: any) => f.poem.title === poem.value.title && f.poem.content?.join('') === poem.value.content?.join(''))
+  isFavorited.value = !!found
+  favRecordId.value = found?.id || ''
+}
+
+function updateFavoriteSettings() {
+  if (!isFavorited.value || !favRecordId.value) return
+  const favs = getFavorites()
+  const idx = favs.findIndex((f: any) => f.id === favRecordId.value)
+  if (idx < 0) return
+  favs[idx].font = currentFont.value
+  favs[idx].mount = currentMount.value
+  favs[idx].settings = buildFavSettings()
+  uni.setStorageSync(FAVORITES_KEY, JSON.stringify(favs))
 }
 
 function onToggleFavorite() {
   const favs = getFavorites()
   const idx = favs.findIndex((f: any) => f.poem.title === poem.value.title && f.poem.content?.join('') === poem.value.content?.join(''))
   if (idx >= 0) {
+    favRecordId.value = ''
     favs.splice(idx, 1)
     isFavorited.value = false
     uni.showToast({ title: '已取消收藏', icon: 'none' })
   } else {
+    const newId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
     favs.unshift({
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      id: newId,
       poem: { ...poem.value },
       createdAt: new Date().toISOString(),
       font: currentFont.value,
       mount: currentMount.value,
-      settings: {
-        bg: currentBg.value,
-        border: currentBorder.value,
-        texture: currentTexture.value,
-        textureType: currentTextureType.value,
-        textureStrength: textureStrength.value,
-        fontScale: fontScale.value,
-        stampText: stampText.value,
-        stampSize: stampSizeVal.value,
-        stampShape: stampShape.value,
-        stampPosition: stampPosition.value,
-        stampFont: stampFontKey.value,
-      },
+      settings: buildFavSettings(),
     })
     if (favs.length > 200) favs.pop()
+    favRecordId.value = newId
     isFavorited.value = true
     uni.showToast({ title: '已收藏', icon: 'success' })
   }
