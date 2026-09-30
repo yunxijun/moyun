@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: moyun-api
+    runtime: node
+    region: singapore
+    plan: free
+    buildCommand: npm i -g pnpm@10 && pnpm install --filter @moyun/server...
+    startCommand: cd server && pnpm start
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: LLM_BASE_URL
+        value: https://api.deepseek.com
+      - key: LLM_MODEL
+        value: deepseek-chat
+      - key: PORT
+        value: "3001"
