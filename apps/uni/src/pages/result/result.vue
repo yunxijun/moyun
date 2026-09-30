@@ -1728,6 +1728,20 @@ function toggle3DGrid() {
   }
 }
 
+async function safeDownload(url: string, filename: string) {
+  if (document.fullscreenElement) {
+    await document.exitFullscreen().catch(() => {})
+    is3DFullscreen.value = false
+    await new Promise(r => setTimeout(r, 200))
+  }
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+}
+
 function toggle3DFullscreen() {
   const wrap = document.querySelector('.frame3d-wrap') as HTMLElement
   if (!wrap) return
@@ -1822,15 +1836,12 @@ function startRecording3D() {
   mediaRecorder.ondataavailable = (e) => {
     if (e.data.size > 0) recordChunks.push(e.data)
   }
-  mediaRecorder.onstop = () => {
+  mediaRecorder.onstop = async () => {
     if (recordChunks.length === 0) return
     const blob = new Blob(recordChunks, { type: mimeType })
     if (blob.size < 1000) { recordChunks = []; return }
     const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `墨韵_3D展示_${Date.now()}.${ext}`
-    a.click()
+    await safeDownload(url, `墨韵_3D展示_${Date.now()}.${ext}`)
     URL.revokeObjectURL(url)
     recordChunks = []
   }
