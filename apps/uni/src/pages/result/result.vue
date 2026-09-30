@@ -34,9 +34,14 @@
             ><text>微倾</text></view>
             <view
               class="preview-3d-chip"
+              :class="{ active: preview3DMode === '3d' }"
+              @tap="switchTo3DFrame()"
+            ><text>3D</text></view>
+            <view
+              class="preview-3d-chip"
               :class="{ active: preview3DMode === 'scene' }"
               @tap="switchTo3DScene()"
-            ><text>书房</text></view>
+            ><text>场景</text></view>
           </view>
           <view class="preview-zoom-bar">
             <text class="preview-zoom-label">大小</text>
@@ -56,7 +61,7 @@
           </view>
         </view>
         <view class="card-section">
-          <template v-if="preview3DMode !== 'scene'">
+          <template v-if="preview3DMode === 'flat' || preview3DMode === 'tilt'">
             <!-- 2D 预览（平面 / 微倾） -->
             <div
               class="tilt-wrapper"
@@ -82,8 +87,77 @@
             </div>
           </template>
 
-          <!-- 3D 书房场景（完全替换 2D 区域） -->
-          <div v-if="preview3DMode === 'scene'" class="scene3d-container" ref="scene3dRef" />
+          <!-- 3D 画框预览（聚焦画框立体效果） -->
+          <div v-if="preview3DMode === '3d'" class="frame3d-wrap" @wheel.stop>
+            <div class="scene3d-container" ref="frame3dRef" />
+            <div class="frame3d-toolbar">
+              <div class="grid-toggle" :class="{ active: show3DGrid }" @click.stop="toggle3DGrid()">
+                {{ show3DGrid ? '隐藏网格' : '显示网格' }}
+              </div>
+              <div
+                class="grid-toggle"
+                :class="{ recording: isRecording3D }"
+                @click.stop="toggle3DRecord()"
+              >
+                {{ isRecording3D ? '⏹ 停止' : '⏺ 录制' }}
+              </div>
+              <div class="grid-toggle" @click.stop="showRecordSettings = !showRecordSettings">
+                ⚙
+              </div>
+              <div class="grid-toggle" @click.stop="toggle3DFullscreen()">
+                {{ is3DFullscreen ? '✕ 退出' : '⛶ 全屏' }}
+              </div>
+            </div>
+            <div v-if="isRecording3D" class="recording-indicator">
+              <text class="rec-dot">●</text>
+              <text class="rec-text">REC {{ recordSeconds }}s</text>
+            </div>
+            <!-- 录制设置面板 -->
+            <div v-if="showRecordSettings && !isRecording3D" class="record-settings" @click.stop>
+              <div class="rec-row">
+                <text class="rec-label">格式</text>
+                <div class="rec-options">
+                  <div v-for="f in availableFormats" :key="f.key"
+                    class="rec-option" :class="{ active: recordFormat === f.key }"
+                    @click="recordFormat = f.key">{{ f.label }}</div>
+                </div>
+              </div>
+              <div class="rec-row">
+                <text class="rec-label">帧率</text>
+                <div class="rec-options">
+                  <div v-for="fps in [24, 30, 60]" :key="fps"
+                    class="rec-option" :class="{ active: recordFPS === fps }"
+                    @click="recordFPS = fps">{{ fps }}</div>
+                </div>
+              </div>
+              <div class="rec-row">
+                <text class="rec-label">清晰度</text>
+                <div class="rec-options">
+                  <div v-for="r in resolutionOptions" :key="r.key"
+                    class="rec-option" :class="{ active: recordResolution === r.key }"
+                    @click="recordResolution = r.key">{{ r.label }}</div>
+                </div>
+              </div>
+              <div class="rec-row">
+                <text class="rec-label">码率</text>
+                <div class="rec-options">
+                  <div v-for="q in qualityOptions" :key="q.key"
+                    class="rec-option" :class="{ active: recordQuality === q.key }"
+                    @click="recordQuality = q.key">{{ q.label }}</div>
+                </div>
+              </div>
+              <div class="rec-row">
+                <text class="rec-label">旋转</text>
+                <div class="rec-options">
+                  <div class="rec-option" :class="{ active: recordAutoRotate }" @click="recordAutoRotate = true">自动环绕</div>
+                  <div class="rec-option" :class="{ active: !recordAutoRotate }" @click="recordAutoRotate = false">手动控制</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 场景模拟（书房全景） -->
+          <div v-if="preview3DMode === 'scene'" class="scene3d-container" ref="scene3dRef" @wheel.stop />
         </view>
       </view>
 
@@ -568,6 +642,9 @@ import ziXiaoHunLiShuUrl from '@/assets/fonts/ZiXiaoHunLiShu.woff2?url'
 import shouJinTiUrl from '@/assets/fonts/ShouJinTi.woff2?url'
 import xiaoZhuanUrl from '@/assets/fonts/XiaoZhuan.woff2?url'
 import maoZeDongUrl from '@/assets/fonts/MaoZeDong.woff2?url'
+import { useTheme } from '@/composables/useTheme'
+
+const { isDark } = useTheme()
 
 /** 自托管字体映射：cssFontFamily → URL */
 const SELF_HOSTED_FONTS: Record<string, string> = {
@@ -788,49 +865,86 @@ const MOUNT_CANVAS: Record<MountStyle, MountCanvasCfg> = {
     },
   },
   'hong-mu': {
-    padding: [16, 16, 16, 16], margin: 4,
+    padding: [20, 20, 20, 20], margin: 5,
     draw(ctx, w, h) {
+      // 主体木纹
       const g = ctx.createLinearGradient(0, 0, w, h)
-      g.addColorStop(0, '#5c2e0e'); g.addColorStop(0.12, '#7a3d1a')
-      g.addColorStop(0.25, '#6b3015'); g.addColorStop(0.4, '#8b4c28')
-      g.addColorStop(0.55, '#5c2e0e'); g.addColorStop(0.7, '#7a3d1a')
-      g.addColorStop(0.85, '#6b3015'); g.addColorStop(1, '#5c2e0e')
+      g.addColorStop(0, '#6b3418'); g.addColorStop(0.08, '#8b4c28')
+      g.addColorStop(0.2, '#5c2e0e'); g.addColorStop(0.35, '#7a3d1a')
+      g.addColorStop(0.5, '#6b3015'); g.addColorStop(0.65, '#8b4c28')
+      g.addColorStop(0.8, '#5c2e0e'); g.addColorStop(0.92, '#7a3d1a')
+      g.addColorStop(1, '#6b3418')
       ctx.fillStyle = g; ctx.fillRect(0, 0, w, h)
-      // 内边线
-      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1
-      ctx.strokeRect(3, 3, w - 6, h - 6)
+      // 上边高光
+      ctx.fillStyle = 'rgba(255, 220, 180, 0.12)'
+      ctx.fillRect(0, 0, w, 3)
+      // 左边高光
+      ctx.fillStyle = 'rgba(255, 220, 180, 0.06)'
+      ctx.fillRect(0, 0, 3, h)
+      // 下边阴影
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.25)'
+      ctx.fillRect(0, h - 3, w, 3)
+      // 右边阴影
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.15)'
+      ctx.fillRect(w - 3, 0, 3, h)
+      // 内倒角线
+      ctx.strokeStyle = 'rgba(255, 220, 180, 0.08)'; ctx.lineWidth = 1
+      ctx.strokeRect(5, 5, w - 10, h - 10)
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)'; ctx.lineWidth = 1
+      ctx.strokeRect(10, 10, w - 20, h - 20)
     },
   },
   'jin-qi': {
-    padding: [16, 16, 16, 16], margin: 4,
+    padding: [20, 20, 20, 20], margin: 5,
     draw(ctx, w, h) {
       const g = ctx.createLinearGradient(0, 0, w, h)
-      g.addColorStop(0, '#b8860b'); g.addColorStop(0.15, '#daa520')
-      g.addColorStop(0.3, '#ffd700'); g.addColorStop(0.5, '#daa520')
-      g.addColorStop(0.65, '#b8860b'); g.addColorStop(0.8, '#cd950c')
+      g.addColorStop(0, '#9a7209'); g.addColorStop(0.1, '#c49a1a')
+      g.addColorStop(0.22, '#f0d060'); g.addColorStop(0.35, '#ffd700')
+      g.addColorStop(0.5, '#e8b820'); g.addColorStop(0.62, '#c49a1a')
+      g.addColorStop(0.75, '#daa520'); g.addColorStop(0.88, '#f0d060')
       g.addColorStop(1, '#b8860b')
       ctx.fillStyle = g; ctx.fillRect(0, 0, w, h)
-      ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1
-      ctx.strokeRect(4, 4, w - 8, h - 8)
+      // 金属高光
+      ctx.fillStyle = 'rgba(255, 245, 200, 0.3)'
+      ctx.fillRect(0, 0, w, 3)
+      ctx.fillStyle = 'rgba(255, 245, 200, 0.12)'
+      ctx.fillRect(0, 0, 3, h)
+      ctx.fillStyle = 'rgba(80, 50, 0, 0.25)'
+      ctx.fillRect(0, h - 3, w, 3)
+      ctx.fillStyle = 'rgba(80, 50, 0, 0.15)'
+      ctx.fillRect(w - 3, 0, 3, h)
+      // 内倒角
+      ctx.strokeStyle = 'rgba(255, 245, 200, 0.2)'; ctx.lineWidth = 1
+      ctx.strokeRect(6, 6, w - 12, h - 12)
+      ctx.strokeStyle = 'rgba(80, 50, 0, 0.1)'; ctx.lineWidth = 1
+      ctx.strokeRect(11, 11, w - 22, h - 22)
     },
   },
   'zhu-kuang': {
-    padding: [14, 14, 14, 14], margin: 4,
+    padding: [16, 16, 16, 16], margin: 5,
     draw(ctx, w, h) {
       const g = ctx.createLinearGradient(0, 0, 0, h)
-      g.addColorStop(0, '#c8b87a'); g.addColorStop(0.15, '#b5a568')
-      g.addColorStop(0.4, '#a89555'); g.addColorStop(0.6, '#b5a568')
-      g.addColorStop(0.85, '#c8b87a'); g.addColorStop(1, '#b5a568')
+      g.addColorStop(0, '#d4c48a'); g.addColorStop(0.1, '#c8b87a')
+      g.addColorStop(0.3, '#b5a568'); g.addColorStop(0.5, '#a89555')
+      g.addColorStop(0.7, '#b5a568'); g.addColorStop(0.9, '#c8b87a')
+      g.addColorStop(1, '#d4c48a')
       ctx.fillStyle = g; ctx.fillRect(0, 0, w, h)
-      // 竹节横线
-      ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 2
-      ctx.globalAlpha = 0.5
-      const drawLine = (y: number) => {
-        const lg = ctx.createLinearGradient(3, 0, w - 3, 0)
-        lg.addColorStop(0, 'transparent'); lg.addColorStop(0.5, 'rgba(0,0,0,0.15)'); lg.addColorStop(1, 'transparent')
-        ctx.strokeStyle = lg; ctx.beginPath(); ctx.moveTo(3, y); ctx.lineTo(w - 3, y); ctx.stroke()
+      // 上高光
+      ctx.fillStyle = 'rgba(255, 255, 230, 0.18)'
+      ctx.fillRect(0, 0, w, 2)
+      ctx.fillStyle = 'rgba(80, 60, 20, 0.15)'
+      ctx.fillRect(0, h - 2, w, 2)
+      // 竹节
+      ctx.globalAlpha = 0.15
+      const drawNode = (y: number) => {
+        const lg = ctx.createLinearGradient(2, 0, w - 2, 0)
+        lg.addColorStop(0, 'transparent'); lg.addColorStop(0.15, 'rgba(80, 60, 20, 0.5)')
+        lg.addColorStop(0.5, 'rgba(80, 60, 20, 0.7)'); lg.addColorStop(0.85, 'rgba(80, 60, 20, 0.5)')
+        lg.addColorStop(1, 'transparent')
+        ctx.strokeStyle = lg; ctx.lineWidth = 2
+        ctx.beginPath(); ctx.moveTo(2, y); ctx.lineTo(w - 2, y); ctx.stroke()
       }
-      drawLine(h * 0.3); drawLine(h * 0.7)
+      drawNode(h * 0.35); drawNode(h * 0.68)
       ctx.globalAlpha = 1
     },
   },
@@ -973,9 +1087,175 @@ const showTexturePanel = ref(false)
 
 // 3D 预览
 const enable3DTilt = ref(false)
-const preview3DMode = ref<'flat' | 'tilt' | 'scene'>('flat')
+const preview3DMode = ref<'flat' | 'tilt' | '3d' | 'scene'>('flat')
 const tiltWrapperRef = ref<any>(null)
 const scene3dRef = ref<any>(null)
+const frame3dRef = ref<any>(null)
+const show3DGrid = ref(true)
+let threeGridHelper: any = null
+const isRecording3D = ref(false)
+const recordSeconds = ref(0)
+const showRecordSettings = ref(false)
+const recordFormat = ref('webm-vp9')
+const recordFPS = ref(30)
+const recordQuality = ref('high')
+const recordAutoRotate = ref(true)
+let mediaRecorder: MediaRecorder | null = null
+let recordChunks: Blob[] = []
+let recordTimer: ReturnType<typeof setInterval> | null = null
+let autoRotateActive = false
+
+interface FormatOption { key: string; mime: string; label: string; ext: string }
+const FORMAT_MAP: FormatOption[] = [
+  { key: 'webm-vp9', mime: 'video/webm;codecs=vp9', label: 'WebM (VP9)', ext: 'webm' },
+  { key: 'webm-vp8', mime: 'video/webm;codecs=vp8', label: 'WebM (VP8)', ext: 'webm' },
+  { key: 'webm', mime: 'video/webm', label: 'WebM', ext: 'webm' },
+  { key: 'mp4', mime: 'video/mp4', label: 'MP4', ext: 'mp4' },
+]
+const availableFormats = computed(() =>
+  FORMAT_MAP.filter(f => {
+    try { return MediaRecorder.isTypeSupported(f.mime) } catch { return false }
+  })
+)
+const qualityOptions = [
+  { key: 'standard', label: '标准', bps: 2_500_000 },
+  { key: 'high', label: '高清', bps: 5_000_000 },
+  { key: 'ultra', label: '超清', bps: 10_000_000 },
+]
+const recordResolution = ref('2x')
+const resolutionOptions = [
+  { key: '1x', label: '1x 原始', scale: 1 },
+  { key: '2x', label: '2x 高清', scale: 2 },
+  { key: '3x', label: '3x 超清', scale: 3 },
+  { key: '4x', label: '4x 2K+', scale: 4 },
+]
+
+const is3DFullscreen = ref(false)
+
+function toggle3DGrid() {
+  show3DGrid.value = !show3DGrid.value
+  if (threeGridHelper) {
+    threeGridHelper.visible = show3DGrid.value
+  }
+}
+
+function toggle3DFullscreen() {
+  const wrap = document.querySelector('.frame3d-wrap') as HTMLElement
+  if (!wrap) return
+
+  if (!document.fullscreenElement) {
+    wrap.requestFullscreen().then(() => {
+      is3DFullscreen.value = true
+      // 全屏后等 DOM 更新，通知 renderer 调整尺寸
+      setTimeout(() => {
+        if (threeRenderer && threeCamera) {
+          const nw = wrap.clientWidth
+          const nh = wrap.clientHeight
+          threeRenderer.setSize(nw, nh)
+          threeCamera.aspect = nw / nh
+          threeCamera.updateProjectionMatrix()
+        }
+      }, 100)
+    }).catch(() => {})
+  } else {
+    document.exitFullscreen().then(() => {
+      is3DFullscreen.value = false
+    }).catch(() => {})
+  }
+}
+
+// 监听全屏变化（用户按 Esc 退出）
+if (typeof document !== 'undefined') {
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && is3DFullscreen.value) {
+      is3DFullscreen.value = false
+    }
+  })
+}
+
+function toggle3DRecord() {
+  if (isRecording3D.value) {
+    stopRecording3D()
+  } else {
+    startRecording3D()
+  }
+}
+
+let preRecordSize: { w: number; h: number } | null = null
+
+function startRecording3D() {
+  const container = frame3dRef.value
+  if (!container) return
+  const el = container instanceof HTMLElement ? container : container?.$el
+  const canvas = el?.querySelector('canvas') as HTMLCanvasElement
+  if (!canvas) return
+
+  // 按比例放大分辨率（保持宽高比不变，通过 renderer 设置）
+  const res = resolutionOptions.find(r => r.key === recordResolution.value)
+  const scale = res?.scale || 1
+  const baseW = el.clientWidth
+  const baseH = el.clientHeight
+  if (scale > 1 && threeRenderer) {
+    preRecordSize = { w: baseW, h: baseH }
+    threeRenderer.setPixelRatio(scale)
+    threeRenderer.setSize(baseW, baseH)
+  }
+
+  // 查找选中的格式
+  const fmt = FORMAT_MAP.find(f => f.key === recordFormat.value)
+  const mimeType = fmt?.mime || 'video/webm'
+  const ext = fmt?.ext || 'webm'
+  const bps = qualityOptions.find(q => q.key === recordQuality.value)?.bps || 5_000_000
+
+  // 开始录制
+  const stream = canvas.captureStream(recordFPS.value)
+  mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: bps })
+  recordChunks = []
+
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data.size > 0) recordChunks.push(e.data)
+  }
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(recordChunks, { type: mimeType })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `墨韵_3D展示_${Date.now()}.${ext}`
+    a.click()
+    URL.revokeObjectURL(url)
+    recordChunks = []
+  }
+
+  mediaRecorder.start(1000)
+  isRecording3D.value = true
+  showRecordSettings.value = false
+  recordSeconds.value = 0
+  autoRotateActive = recordAutoRotate.value
+
+  // 计时
+  recordTimer = setInterval(() => {
+    recordSeconds.value++
+  }, 1000)
+}
+
+function stopRecording3D() {
+  autoRotateActive = false
+  isRecording3D.value = false
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop()
+  }
+  mediaRecorder = null
+  if (recordTimer) {
+    clearInterval(recordTimer)
+    recordTimer = null
+  }
+  // 恢复原始分辨率
+  if (preRecordSize && threeRenderer) {
+    threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    threeRenderer.setSize(preRecordSize.w, preRecordSize.h)
+    preRecordSize = null
+  }
+}
 const tiltX = ref(0)
 const tiltY = ref(0)
 const tiltGlareStyle = computed(() => {
@@ -1131,6 +1411,7 @@ function setupTiltEvents() {
 // ── 3D 书房场景 ──
 let threeCleanup: (() => void) | null = null
 let threeCamera: any = null
+let threeRenderer: any = null
 let threeFrameGroup: any = null
 let threeScene: any = null
 let threeModule: any = null
@@ -1153,6 +1434,20 @@ async function switchToTilt() {
   setupTiltEvents()
 }
 
+async function switchTo3DFrame() {
+  if (preview3DMode.value === '3d') {
+    preview3DMode.value = 'flat'
+    enable3DTilt.value = false
+    if (threeCleanup) { threeCleanup(); threeCleanup = null }
+    return
+  }
+  if (threeCleanup) { threeCleanup(); threeCleanup = null }
+  preview3DMode.value = '3d'
+  enable3DTilt.value = false
+  await nextTick()
+  await init3DFrame()
+}
+
 async function switchTo3DScene() {
   if (preview3DMode.value === 'scene') {
     preview3DMode.value = 'flat'
@@ -1160,10 +1455,410 @@ async function switchTo3DScene() {
     if (threeCleanup) { threeCleanup(); threeCleanup = null }
     return
   }
+  if (threeCleanup) { threeCleanup(); threeCleanup = null }
   preview3DMode.value = 'scene'
   enable3DTilt.value = false
   await nextTick()
   await init3DScene()
+}
+
+/** 重建 3D 贴图和画框几何体（canvas 尺寸/内容变化时调用） */
+function rebuild3DTexture() {
+  if (!threeModule || !threeFrameGroup || !threeScene || !canvasEl) return
+  const THREE = threeModule
+
+  // 创建新贴图
+  const newTexture = new THREE.CanvasTexture(canvasEl)
+  newTexture.colorSpace = THREE.SRGBColorSpace
+  newTexture.needsUpdate = true
+
+  // 计算新比例
+  const newAspect = canvasEl.height / canvasEl.width
+  const artW = 2.0, artH = artW * newAspect
+
+  // 更新 frameGroup 中所有子对象的引用 artW/artH
+  // 最简单的办法是重建整个画框
+  // 先把旧的 cardTexture 引用存一下，在 buildFrame 里会用到
+  threeScene.__artW = artW
+  threeScene.__artH = artH
+  threeScene.__cardTexture = newTexture
+
+  // 更新网格位置
+  if (threeGridHelper) {
+    threeGridHelper.position.y = -artH / 2 - 0.3
+  }
+
+  if (threeBuildFrame) {
+    threeBuildFrame(currentMount.value)
+  }
+}
+
+/** 3D 画框聚焦预览 —— 近距离展示画框立体效果 */
+async function init3DFrame() {
+  const container = frame3dRef.value
+  if (!container) return
+  const el = container instanceof HTMLElement ? container : container?.$el
+  if (!el) return
+
+  const THREE = await import('three')
+  const { OrbitControls } = await import('three/examples/jsm/controls/OrbitControls.js')
+
+  await new Promise(r => requestAnimationFrame(r))
+  const w = el.clientWidth || 600
+  const h = el.clientHeight || 500
+
+  // 画作 canvas
+  const cardCanvas = canvasEl
+  let cardTexture: InstanceType<typeof THREE.CanvasTexture> | null = null
+  if (cardCanvas) {
+    cardTexture = new THREE.CanvasTexture(cardCanvas)
+    cardTexture.colorSpace = THREE.SRGBColorSpace
+    cardTexture.needsUpdate = true
+  }
+  const artAspect = cardCanvas ? cardCanvas.height / cardCanvas.width : 1.4
+  const artW = 2.0, artH = artW * artAspect
+
+  // 程序化木纹纹理
+  function mkTex3D(sz: number, draw: (cx: CanvasRenderingContext2D, s: number) => void) {
+    const c = document.createElement('canvas')
+    c.width = c.height = sz
+    draw(c.getContext('2d')!, sz)
+    const t = new THREE.CanvasTexture(c)
+    t.wrapS = t.wrapT = THREE.RepeatWrapping
+    return t
+  }
+
+  const woodTex = mkTex3D(512, (cx, s) => {
+    cx.fillStyle = '#4a2010'
+    cx.fillRect(0, 0, s, s)
+    for (let i = 0; i < 150; i++) {
+      const y = Math.random() * s
+      cx.strokeStyle = `rgba(${30 + Math.random() * 30},${12 + Math.random() * 18},${5 + Math.random() * 10},${0.1 + Math.random() * 0.2})`
+      cx.lineWidth = 0.5 + Math.random() * 3
+      cx.beginPath(); cx.moveTo(0, y)
+      for (let x = 0; x < s; x += 12) cx.lineTo(x, y + Math.sin(x * 0.012 + i * 0.5) * (2 + Math.random() * 4))
+      cx.stroke()
+    }
+  })
+
+  const goldTex = mkTex3D(256, (cx, s) => {
+    const g = cx.createLinearGradient(0, 0, s, s)
+    g.addColorStop(0, '#9a7209'); g.addColorStop(0.2, '#e8b820')
+    g.addColorStop(0.4, '#ffd700'); g.addColorStop(0.6, '#c49a1a')
+    g.addColorStop(0.8, '#daa520'); g.addColorStop(1, '#b8860b')
+    cx.fillStyle = g; cx.fillRect(0, 0, s, s)
+    for (let i = 0; i < 80; i++) {
+      cx.fillStyle = `rgba(255,245,200,${0.02 + Math.random() * 0.06})`
+      cx.fillRect(Math.random() * s, Math.random() * s, s, 1)
+    }
+  })
+
+  const bambooTex = mkTex3D(256, (cx, s) => {
+    const g = cx.createLinearGradient(0, 0, 0, s)
+    g.addColorStop(0, '#d4c48a'); g.addColorStop(0.3, '#b5a568')
+    g.addColorStop(0.5, '#a89555'); g.addColorStop(0.7, '#b5a568'); g.addColorStop(1, '#c8b87a')
+    cx.fillStyle = g; cx.fillRect(0, 0, s, s)
+    cx.strokeStyle = 'rgba(80,60,20,0.15)'; cx.lineWidth = 3
+    cx.beginPath(); cx.moveTo(0, s * 0.35); cx.lineTo(s, s * 0.35); cx.stroke()
+    cx.beginPath(); cx.moveTo(0, s * 0.68); cx.lineTo(s, s * 0.68); cx.stroke()
+  })
+
+  // ── 场景（纯净背景 + 可选网格，适配深色模式） ──
+  const dark = isDark.value
+  const scene = new THREE.Scene()
+  scene.background = new THREE.Color(dark ? 0x1e1e22 : 0xf5f2ed)
+
+  // 参考网格
+  const gridHelper = new THREE.GridHelper(10, 20,
+    dark ? 0x3a3a40 : 0xd0ccc4,
+    dark ? 0x2a2a30 : 0xe0dcd6
+  )
+  gridHelper.position.y = -artH / 2 - 0.3
+  gridHelper.visible = show3DGrid.value
+  scene.add(gridHelper)
+  threeGridHelper = gridHelper
+
+  // 灯光（只影响画框材质，画心用 BasicMaterial 不受影响）
+  scene.add(new THREE.AmbientLight(0xffffff, dark ? 0.4 : 0.5))
+  const keyLight = new THREE.DirectionalLight(0xffffff, dark ? 0.5 : 0.4)
+  keyLight.position.set(3, 4, 5)
+  keyLight.castShadow = true
+  keyLight.shadow.mapSize.set(1024, 1024)
+  scene.add(keyLight)
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.15)
+  fillLight.position.set(-3, 2, 3)
+  scene.add(fillLight)
+
+  // 相机（默认拉远，看到完整画框）
+  const camera = new THREE.PerspectiveCamera(35, w / h, 0.1, 50)
+  camera.position.set(0.2, 0.15, 6.5)
+  camera.lookAt(0, 0, 0)
+  threeCamera = camera
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true })
+  renderer.setSize(w, h)
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.shadowMap.enabled = true
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap
+  renderer.toneMapping = THREE.ACESFilmicToneMapping
+  renderer.toneMappingExposure = 1.0
+  renderer.outputColorSpace = THREE.SRGBColorSpace
+  el.innerHTML = ''
+  el.appendChild(renderer.domElement)
+  threeRenderer = renderer
+
+  const controls = new OrbitControls(camera, renderer.domElement)
+  controls.enableDamping = true
+  controls.dampingFactor = 0.08
+  controls.minDistance = 2
+  controls.maxDistance = 10
+  controls.target.set(0, 0, 0)
+
+  // ── 画框组 ──
+  const frameGroup = new THREE.Group()
+  scene.add(frameGroup)
+  threeFrameGroup = frameGroup
+  threeScene = scene
+  threeModule = THREE
+
+  function buildFrame3D(mount: string) {
+    while (frameGroup.children.length) {
+      const c = frameGroup.children[0]
+      frameGroup.remove(c)
+      if ((c as any).geometry) (c as any).geometry.dispose()
+      if ((c as any).material?.dispose) (c as any).material.dispose()
+    }
+
+    // 动态读取最新尺寸和贴图（renderCard 后会更新）
+    const tex = scene.__cardTexture || cardTexture
+    // 用局部变量覆盖外层 artW/artH，后续代码全部自动适配
+    const artW: number = scene.__artW || 2.0
+    const artH: number = scene.__artH || (2.0 * artAspect)
+
+    // 画心贴图（MeshBasicMaterial 不受光照影响，1:1 还原颜色）
+    const cardMat = new THREE.MeshBasicMaterial({
+      map: tex,
+      side: THREE.DoubleSide,
+      polygonOffset: true, polygonOffsetFactor: -1
+    })
+    const cardMesh = new THREE.Mesh(new THREE.PlaneGeometry(artW, artH), cardMat)
+    cardMesh.position.z = 0.002
+    frameGroup.add(cardMesh)
+
+    // 获取装裱配置
+    const fPad = 0.08  // 框宽度
+    const fDepth = 0.06 // 框厚度
+    const matPad = 0.03 // 卡纸宽度
+    const matDepth = 0.01
+
+    if (mount === 'none') {
+      // 无框 —— 加背板
+      const back = new THREE.Mesh(
+        new THREE.PlaneGeometry(artW + 0.02, artH + 0.02),
+        new THREE.MeshStandardMaterial({ color: 0xd8d0c0, roughness: 0.9, side: THREE.DoubleSide })
+      )
+      back.position.z = -0.005
+      frameGroup.add(back)
+      return
+    }
+
+    if (mount === 'hong-mu' || mount === 'jin-qi' || mount === 'zhu-kuang') {
+      // === 真实立体画框 ===
+      const tex = mount === 'hong-mu' ? woodTex : mount === 'jin-qi' ? goldTex : bambooTex
+      const frameMat = new THREE.MeshStandardMaterial({
+        map: tex,
+        roughness: mount === 'jin-qi' ? 0.25 : mount === 'zhu-kuang' ? 0.55 : 0.45,
+        metalness: mount === 'jin-qi' ? 0.5 : mount === 'zhu-kuang' ? 0.02 : 0.08,
+      })
+
+      // 卡纸（白色斜切 mat board）
+      const matBoard = new THREE.Mesh(
+        new THREE.PlaneGeometry(artW + matPad * 2, artH + matPad * 2),
+        new THREE.MeshStandardMaterial({ color: 0xf5f0e0, roughness: 0.9, side: THREE.DoubleSide })
+      )
+      matBoard.position.z = -0.001
+      frameGroup.add(matBoard)
+
+      // 四条框边（用 BoxGeometry 模拟真实框剖面，带厚度）
+      const outerW = artW + matPad * 2 + fPad * 2
+      const outerH = artH + matPad * 2 + fPad * 2
+      // 上框
+      const topBar = new THREE.Mesh(new THREE.BoxGeometry(outerW, fPad, fDepth), frameMat)
+      topBar.position.set(0, (artH + matPad * 2 + fPad) / 2, fDepth / 2 - 0.01)
+      topBar.castShadow = true; frameGroup.add(topBar)
+      // 下框
+      const botBar = new THREE.Mesh(new THREE.BoxGeometry(outerW, fPad, fDepth), frameMat)
+      botBar.position.set(0, -(artH + matPad * 2 + fPad) / 2, fDepth / 2 - 0.01)
+      botBar.castShadow = true; frameGroup.add(botBar)
+      // 左框
+      const leftBar = new THREE.Mesh(new THREE.BoxGeometry(fPad, outerH, fDepth), frameMat)
+      leftBar.position.set(-(artW + matPad * 2 + fPad) / 2, 0, fDepth / 2 - 0.01)
+      leftBar.castShadow = true; frameGroup.add(leftBar)
+      // 右框
+      const rightBar = new THREE.Mesh(new THREE.BoxGeometry(fPad, outerH, fDepth), frameMat)
+      rightBar.position.set((artW + matPad * 2 + fPad) / 2, 0, fDepth / 2 - 0.01)
+      rightBar.castShadow = true; frameGroup.add(rightBar)
+
+      // 内倒角（深色阴影面，模拟框内斜面）
+      const innerShadowMat = new THREE.MeshStandardMaterial({ color: 0x1a1008, roughness: 0.8, metalness: 0 })
+      const isDepth = 0.015
+      // 上内倒角
+      const tiBar = new THREE.Mesh(new THREE.BoxGeometry(artW + matPad * 2, isDepth, matDepth + 0.005), innerShadowMat)
+      tiBar.position.set(0, (artH + matPad * 2) / 2 - isDepth / 2, -0.003)
+      frameGroup.add(tiBar)
+      // 下内倒角
+      const biBar = tiBar.clone()
+      biBar.position.set(0, -(artH + matPad * 2) / 2 + isDepth / 2, -0.003)
+      frameGroup.add(biBar)
+      // 左内倒角
+      const liBar = new THREE.Mesh(new THREE.BoxGeometry(isDepth, artH + matPad * 2, matDepth + 0.005), innerShadowMat)
+      liBar.position.set(-(artW + matPad * 2) / 2 + isDepth / 2, 0, -0.003)
+      frameGroup.add(liBar)
+      // 右内倒角
+      const riBar = liBar.clone()
+      riBar.position.set((artW + matPad * 2) / 2 - isDepth / 2, 0, -0.003)
+      frameGroup.add(riBar)
+
+      // 背板（双面可见）
+      const backBoard = new THREE.Mesh(
+        new THREE.PlaneGeometry(outerW, outerH),
+        new THREE.MeshStandardMaterial({ color: 0x3a2a18, roughness: 0.9, side: THREE.DoubleSide })
+      )
+      backBoard.position.z = -0.015
+      frameGroup.add(backBoard)
+
+      // 玻璃面（半透明反光）
+      const glass = new THREE.Mesh(
+        new THREE.PlaneGeometry(artW + matPad * 2 - 0.005, artH + matPad * 2 - 0.005),
+        new THREE.MeshStandardMaterial({
+          color: 0xffffff, transparent: true, opacity: 0.06,
+          roughness: 0.05, metalness: 0.1,
+          side: THREE.FrontSide,
+        })
+      )
+      glass.position.z = 0.004
+      frameGroup.add(glass)
+
+    } else if (mount === 'jing-pian') {
+      // 镜片 —— 白卡纸 + 细黑框
+      const matBoard = new THREE.Mesh(
+        new THREE.PlaneGeometry(artW + 0.06, artH + 0.06),
+        new THREE.MeshStandardMaterial({ color: 0xf8f4e8, roughness: 0.92, side: THREE.DoubleSide })
+      )
+      matBoard.position.z = -0.001; frameGroup.add(matBoard)
+      const frameMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 })
+      const ow = artW + 0.1, oh = artH + 0.1, fd = 0.03
+      const t = new THREE.Mesh(new THREE.BoxGeometry(ow, 0.025, fd), frameMat)
+      t.position.set(0, oh / 2, fd / 2 - 0.005); t.castShadow = true; frameGroup.add(t)
+      const b = t.clone(); b.position.y = -oh / 2; frameGroup.add(b)
+      const l = new THREE.Mesh(new THREE.BoxGeometry(0.025, oh, fd), frameMat)
+      l.position.set(-ow / 2, 0, fd / 2 - 0.005); l.castShadow = true; frameGroup.add(l)
+      const r = l.clone(); r.position.x = ow / 2; frameGroup.add(r)
+      const back = new THREE.Mesh(new THREE.PlaneGeometry(ow, oh), new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.9, side: THREE.DoubleSide }))
+      back.position.z = -0.01; frameGroup.add(back)
+
+    } else if (mount === 'ling-biao') {
+      // 绫裱 —— 绢面 + 薄木框
+      const silkMat = new THREE.MeshStandardMaterial({ color: 0xc8b896, roughness: 0.82, side: THREE.DoubleSide })
+      const pad = 0.12
+      const silk = new THREE.Mesh(new THREE.PlaneGeometry(artW + pad * 2, artH + pad * 2), silkMat)
+      silk.position.z = -0.002; frameGroup.add(silk)
+      const frameMat = new THREE.MeshStandardMaterial({ color: 0x2a1808, roughness: 0.5, metalness: 0.05 })
+      const ow = artW + pad * 2 + 0.05, oh = artH + pad * 2 + 0.05, fd = 0.035
+      const t = new THREE.Mesh(new THREE.BoxGeometry(ow, 0.028, fd), frameMat)
+      t.position.set(0, oh / 2, fd / 2 - 0.005); t.castShadow = true; frameGroup.add(t)
+      const b = t.clone(); b.position.y = -oh / 2; frameGroup.add(b)
+      const l = new THREE.Mesh(new THREE.BoxGeometry(0.028, oh, fd), frameMat)
+      l.position.set(-ow / 2, 0, fd / 2 - 0.005); l.castShadow = true; frameGroup.add(l)
+      const r = l.clone(); r.position.x = ow / 2; frameGroup.add(r)
+
+    } else if (mount === 'xuan-he') {
+      // 宣和装 —— 天头地脚 + 隔水
+      const topH = 0.25, botH = 0.18, sideW = 0.1
+      const bgW = artW + sideW * 2, bgH = artH + topH + botH
+      const bg = new THREE.Mesh(new THREE.PlaneGeometry(bgW, bgH), new THREE.MeshStandardMaterial({ color: 0xf0e8d5, roughness: 0.85, side: THREE.DoubleSide }))
+      bg.position.set(0, (topH - botH) / 2, -0.002); frameGroup.add(bg)
+      const topMat = new THREE.MeshStandardMaterial({ color: 0x6b8e9b, roughness: 0.78, side: THREE.DoubleSide })
+      const top = new THREE.Mesh(new THREE.PlaneGeometry(bgW, topH), topMat)
+      top.position.set(0, artH / 2 + topH / 2, -0.001); frameGroup.add(top)
+      const bot = new THREE.Mesh(new THREE.PlaneGeometry(bgW, botH), new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 0.8, side: THREE.DoubleSide }))
+      bot.position.set(0, -artH / 2 - botH / 2, -0.001); frameGroup.add(bot)
+
+    } else if (mount === 'li-zhou') {
+      // 立轴 —— 卷轴+天杆地杆
+      const scrollPad = 0.08
+      const bgW = artW + scrollPad * 2, bgH = artH + scrollPad * 2 + 0.35
+      const bg = new THREE.Mesh(new THREE.PlaneGeometry(bgW, bgH), new THREE.MeshStandardMaterial({ color: 0xc8b896, roughness: 0.85, side: THREE.DoubleSide }))
+      bg.position.z = -0.003; frameGroup.add(bg)
+      const rodR = 0.025, rodLen = bgW + 0.18
+      const rodMat = new THREE.MeshStandardMaterial({ color: 0x3a2010, roughness: 0.45, metalness: 0.1 })
+      const topRod = new THREE.Mesh(new THREE.CylinderGeometry(rodR, rodR, rodLen, 16), rodMat)
+      topRod.rotation.z = Math.PI / 2
+      topRod.position.set(0, bgH / 2 + 0.02, 0.015)
+      topRod.castShadow = true; frameGroup.add(topRod)
+      const botRod = new THREE.Mesh(new THREE.CylinderGeometry(rodR * 1.3, rodR * 1.3, rodLen, 16), rodMat)
+      botRod.rotation.z = Math.PI / 2
+      botRod.position.set(0, -bgH / 2 - 0.02, 0.015)
+      botRod.castShadow = true; frameGroup.add(botRod)
+      // 轴头
+      const knobMat = new THREE.MeshStandardMaterial({ color: 0x2a1808, roughness: 0.35, metalness: 0.2 })
+      for (const [kx, ky, kr] of [
+        [rodLen / 2, bgH / 2 + 0.02, rodR * 1.5],
+        [-rodLen / 2, bgH / 2 + 0.02, rodR * 1.5],
+        [rodLen / 2, -bgH / 2 - 0.02, rodR * 2],
+        [-rodLen / 2, -bgH / 2 - 0.02, rodR * 2],
+      ] as [number, number, number][]) {
+        const knob = new THREE.Mesh(new THREE.SphereGeometry(kr, 12, 10), knobMat)
+        knob.position.set(kx, ky, 0.015); frameGroup.add(knob)
+      }
+    }
+  }
+
+  buildFrame3D(currentMount.value)
+  threeBuildFrame = buildFrame3D
+
+  // 动画
+  let running = true
+  let rotAngle = 0
+  function animate() {
+    if (!running) return
+    requestAnimationFrame(animate)
+    // 录制时自动环绕旋转
+    if (autoRotateActive) {
+      rotAngle += 0.008
+      const radius = 6.5
+      camera.position.x = Math.sin(rotAngle) * radius
+      camera.position.z = Math.cos(rotAngle) * radius
+      camera.position.y = 0.3 + Math.sin(rotAngle * 0.5) * 0.5
+      camera.lookAt(0, 0, 0)
+    }
+    controls.update()
+    if (cardTexture && cardCanvas) cardTexture.needsUpdate = true
+    renderer.render(scene, camera)
+  }
+  animate()
+
+  const onResize = () => {
+    const nw = el.clientWidth || 600
+    const nh = el.clientHeight || 500
+    camera.aspect = nw / nh; camera.updateProjectionMatrix()
+    renderer.setSize(nw, nh)
+  }
+  window.addEventListener('resize', onResize)
+  const ro = new ResizeObserver(onResize)
+  ro.observe(el)
+  setTimeout(onResize, 50)
+
+  threeCleanup = () => {
+    running = false; threeCamera = null; threeRenderer = null
+    threeFrameGroup = null; threeScene = null; threeModule = null; threeBuildFrame = null
+    threeGridHelper = null
+    if (isRecording3D.value) stopRecording3D()
+    ro.disconnect()
+    window.removeEventListener('resize', onResize)
+    renderer.dispose(); controls.dispose()
+    el.innerHTML = ''
+  }
 }
 
 async function init3DScene() {
@@ -1945,6 +2640,11 @@ async function renderCard() {
   if (!ctx) return
 
   renderCalligraphyCard(ctx, buildRenderOptions())
+
+  // 3D 模式下需要重建画框（canvas 尺寸/内容可能变化）
+  if (preview3DMode.value === '3d' && threeBuildFrame) {
+    rebuild3DTexture()
+  }
 }
 
 /** 用户原始输入信息 */
@@ -2006,13 +2706,16 @@ watch(previewScale, (val) => {
   if (threeCamera && preview3DMode.value === 'scene') {
     threeCamera.position.z = 3.0 / (val / 100)
   }
+  if (threeCamera && preview3DMode.value === '3d') {
+    threeCamera.position.z = 6.5 / (val / 100)
+  }
 })
 
 // 存储 buildFrame 引用
 let threeBuildFrame: ((mount: string) => void) | null = null
 
 watch(() => currentMount.value, (val) => {
-  if (threeBuildFrame && preview3DMode.value === 'scene') {
+  if (threeBuildFrame && (preview3DMode.value === 'scene' || preview3DMode.value === '3d')) {
     threeBuildFrame(val)
   }
 })
@@ -2395,6 +3098,8 @@ $breakpoint: 768px;
     padding: 0 16px;
     overflow-y: auto;
     max-height: calc(100vh - #{$nav-height} - 40px);
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
   }
 }
 
@@ -2574,11 +3279,144 @@ $breakpoint: 768px;
   border-radius: 0;
   overflow: hidden;
   background: #e0d8cc;
+  position: relative;
   canvas {
     display: block;
     width: 100% !important;
     height: 100% !important;
   }
+}
+.frame3d-wrap {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  background: #f5f2ed;
+
+  &:fullscreen {
+    background: #f5f2ed;
+    .scene3d-container {
+      width: 100% !important;
+      height: 100% !important;
+      flex: 1;
+    }
+    .frame3d-toolbar {
+      bottom: 20px;
+      right: 20px;
+    }
+    .recording-indicator {
+      top: 20px;
+      left: 20px;
+    }
+    .record-settings {
+      bottom: 56px;
+      right: 20px;
+    }
+  }
+}
+.frame3d-wrap .scene3d-container {
+  flex: 1;
+  min-height: 0;
+}
+.frame3d-toolbar {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  z-index: 100;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.recording-indicator {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+}
+.rec-dot {
+  color: #ff3333;
+  font-size: 14px;
+  animation: recBlink 1s ease-in-out infinite;
+}
+.rec-text {
+  color: #fff;
+  font-size: 12px;
+  font-family: monospace;
+}
+@keyframes recBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.record-settings {
+  position: absolute;
+  bottom: 44px;
+  right: 12px;
+  z-index: 101;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  min-width: 200px;
+}
+.rec-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  &:last-child { margin-bottom: 0; }
+}
+.rec-label {
+  font-size: 12px;
+  color: #888;
+  width: 32px;
+  flex-shrink: 0;
+}
+.rec-options {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.rec-option {
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #666;
+  background: rgba(0,0,0,0.05);
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+  &:hover { background: rgba(0,0,0,0.1); }
+  &.active {
+    color: #fff;
+    background: #5b7f95;
+  }
+}
+.grid-toggle {
+  padding: 5px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #888;
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+  pointer-events: auto;
+  white-space: nowrap;
+  &:hover { background: rgba(255,255,255,0.92); color: #555; }
+  &.active { color: #5b7f95; }
+  &.recording { color: #ff3333; }
+  &.recording:hover { background: rgba(255,220,220,0.92); }
 }
 
 // ── 装裱画框系统 ──
@@ -2701,92 +3539,137 @@ $breakpoint: 768px;
   }
 }
 
-// 红木框：花梨木纹
+// 红木框：花梨木纹 — 3D立体效果
 .mount-hong-mu {
-  .card-container { margin: 4px; }
+  .card-container { margin: 5px; }
   .mount-mat {
-    padding: 16px;
-    background: linear-gradient(135deg,
-      #5c2e0e 0%, #7a3d1a 12%, #6b3015 25%,
-      #8b4c28 40%, #5c2e0e 55%, #7a3d1a 70%,
-      #6b3015 85%, #5c2e0e 100%
-    );
-    border-radius: 2px;
-    box-shadow:
-      0 4px 20px rgba(0, 0, 0, 0.25),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      inset 0 -1px 0 rgba(0, 0, 0, 0.3),
-      inset 1px 0 0 rgba(255, 255, 255, 0.04),
-      inset -1px 0 0 rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(60, 25, 8, 0.9);
+    padding: 20px;
     position: relative;
-
-    &::before {
-      content: '';
-      position: absolute;
-      inset: 3px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      pointer-events: none;
-    }
-  }
-}
-
-// 金漆框：鎏金宫廷风
-.mount-jin-qi {
-  .card-container { margin: 4px; }
-  .mount-mat {
-    padding: 16px;
-    background: linear-gradient(135deg,
-      #b8860b 0%, #daa520 15%, #ffd700 30%,
-      #daa520 50%, #b8860b 65%, #cd950c 80%,
-      #b8860b 100%
+    border-radius: 1px;
+    // 外框主体木纹
+    background: linear-gradient(160deg,
+      #6b3418 0%, #8b4c28 8%, #5c2e0e 20%,
+      #7a3d1a 35%, #6b3015 50%, #8b4c28 65%,
+      #5c2e0e 80%, #7a3d1a 92%, #6b3418 100%
     );
-    border-radius: 2px;
+    // 3D光影：上/左高光，下/右阴影，投影
     box-shadow:
-      0 4px 24px rgba(184, 134, 11, 0.3),
-      0 8px 40px rgba(0, 0, 0, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.4),
-      inset 0 -1px 0 rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(184, 134, 11, 0.7);
-    position: relative;
+      // 墙面投影
+      6px 8px 24px rgba(0, 0, 0, 0.35),
+      2px 3px 8px rgba(0, 0, 0, 0.2),
+      // 框外缘高光（上/左）
+      inset 0 2px 0 rgba(255, 220, 180, 0.15),
+      inset 2px 0 0 rgba(255, 220, 180, 0.08),
+      // 框外缘阴影（下/右）
+      inset 0 -2px 0 rgba(0, 0, 0, 0.4),
+      inset -2px 0 0 rgba(0, 0, 0, 0.25),
+      // 内侧倒角阴影（凹进去的感觉）
+      inset 0 0 8px 2px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(40, 15, 5, 0.9);
 
+    // 内边框倒角（斜面高光）
     &::before {
       content: '';
       position: absolute;
       inset: 4px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-top: 2px solid rgba(255, 220, 180, 0.12);
+      border-left: 2px solid rgba(255, 220, 180, 0.06);
+      border-bottom: 2px solid rgba(0, 0, 0, 0.2);
+      border-right: 2px solid rgba(0, 0, 0, 0.15);
+      pointer-events: none;
+    }
+    // 最内侧卡纸线
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 10px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
       pointer-events: none;
     }
   }
 }
 
-// 竹框：文人气质
-.mount-zhu-kuang {
-  .card-container { margin: 4px; }
+// 金漆框：鎏金宫廷风 — 3D立体效果
+.mount-jin-qi {
+  .card-container { margin: 5px; }
   .mount-mat {
-    padding: 14px;
-    background: linear-gradient(180deg,
-      #c8b87a 0%, #b5a568 15%, #a89555 40%,
-      #b5a568 60%, #c8b87a 85%, #b5a568 100%
-    );
-    border-radius: 3px;
-    box-shadow:
-      0 4px 20px rgba(0, 0, 0, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.15),
-      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(160, 140, 80, 0.7);
+    padding: 20px;
     position: relative;
+    border-radius: 1px;
+    background: linear-gradient(150deg,
+      #9a7209 0%, #c49a1a 10%, #f0d060 22%,
+      #ffd700 35%, #e8b820 50%, #c49a1a 62%,
+      #daa520 75%, #f0d060 88%, #b8860b 100%
+    );
+    box-shadow:
+      6px 8px 24px rgba(0, 0, 0, 0.3),
+      2px 3px 8px rgba(100, 70, 0, 0.15),
+      // 金属高光
+      inset 0 2px 0 rgba(255, 245, 200, 0.5),
+      inset 2px 0 0 rgba(255, 245, 200, 0.2),
+      inset 0 -2px 0 rgba(100, 60, 0, 0.4),
+      inset -2px 0 0 rgba(100, 60, 0, 0.2),
+      inset 0 0 6px 2px rgba(100, 60, 0, 0.1);
+    border: 1px solid rgba(150, 100, 10, 0.8);
 
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 5px;
+      border-top: 2px solid rgba(255, 245, 200, 0.35);
+      border-left: 2px solid rgba(255, 245, 200, 0.15);
+      border-bottom: 2px solid rgba(80, 50, 0, 0.3);
+      border-right: 2px solid rgba(80, 50, 0, 0.2);
+      pointer-events: none;
+    }
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 11px;
+      border: 1px solid rgba(100, 70, 0, 0.15);
+      box-shadow: inset 0 1px 3px rgba(100, 60, 0, 0.12);
+      pointer-events: none;
+    }
+  }
+}
+
+// 竹框：文人气质 — 3D立体效果
+.mount-zhu-kuang {
+  .card-container { margin: 5px; }
+  .mount-mat {
+    padding: 16px;
+    position: relative;
+    border-radius: 2px;
+    background: linear-gradient(175deg,
+      #d4c48a 0%, #c8b87a 10%, #b5a568 30%,
+      #a89555 50%, #b5a568 70%, #c8b87a 90%, #d4c48a 100%
+    );
+    box-shadow:
+      5px 7px 20px rgba(0, 0, 0, 0.18),
+      2px 3px 6px rgba(0, 0, 0, 0.1),
+      inset 0 2px 0 rgba(255, 255, 230, 0.25),
+      inset 2px 0 0 rgba(255, 255, 230, 0.1),
+      inset 0 -2px 0 rgba(80, 60, 20, 0.2),
+      inset -2px 0 0 rgba(80, 60, 20, 0.1),
+      inset 0 0 4px rgba(80, 60, 20, 0.08);
+    border: 1px solid rgba(140, 120, 60, 0.6);
+
+    // 竹节
     &::before, &::after {
       content: '';
       position: absolute;
-      left: 3px;
-      right: 3px;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.15), transparent);
+      left: 2px; right: 2px;
+      height: 3px;
+      background: linear-gradient(90deg,
+        transparent 0%, rgba(80, 60, 20, 0.12) 15%,
+        rgba(80, 60, 20, 0.18) 50%,
+        rgba(80, 60, 20, 0.12) 85%, transparent 100%
+      );
+      border-top: 1px solid rgba(255, 255, 230, 0.1);
     }
-    &::before { top: 30%; }
-    &::after { top: 70%; }
+    &::before { top: 35%; }
+    &::after { top: 68%; }
   }
 }
 
@@ -4137,6 +5020,28 @@ $breakpoint: 768px;
   .ink-pos-cell { border-color: rgba(232,228,223,0.08); }
   .ink-pos-cell.active { border-color: #cc3333; background: rgba(204,51,51,0.08); }
   .ink-pos-mark { background: rgba(232,228,223,0.2); }
+
+  /* 3D 预览 */
+  .scene3d-container { background: #1e1e22; }
+  .frame3d-wrap { background: #1e1e22; }
+  .frame3d-wrap:fullscreen { background: #1e1e22; }
+  .grid-toggle {
+    color: #999;
+    background: rgba(40,40,46,0.8);
+    &:hover { background: rgba(50,50,58,0.9); color: #ccc; }
+    &.active { color: #7aadca; }
+  }
+  .record-settings {
+    background: rgba(30,30,36,0.92);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  .rec-label { color: #888; }
+  .rec-option {
+    color: #aaa;
+    background: rgba(255,255,255,0.06);
+    &:hover { background: rgba(255,255,255,0.12); }
+    &.active { color: #fff; background: #5b7f95; }
+  }
 
   /* 操作按钮 */
   .actions-bar {
