@@ -1572,12 +1572,31 @@ async function renderPoster(): Promise<HTMLCanvasElement | null> {
 
   let curY = infoTop + topPad
 
-  // 标题
+  // 标题（如果有头像，画在标题左侧）
+  const posterAuthorOn = uni.getStorageSync('moyun_poster_author') !== 'false'
+  const authorAvatar = posterAuthorOn ? (uni.getStorageSync('moyun_avatar') || '') : ''
+  const avatarSize = Math.round(titleSize * 1.35)
+  let titleX = pad
+
+  if (authorAvatar) {
+    try {
+      const avImg = await loadImage(authorAvatar)
+      const avY = curY + Math.round((titleSize - avatarSize) / 2) + Math.round(avatarSize * 0.15)
+      ctx.save()
+      ctx.beginPath()
+      ctx.arc(pad + avatarSize / 2, avY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2)
+      ctx.clip()
+      ctx.drawImage(avImg, pad, avY, avatarSize, avatarSize)
+      ctx.restore()
+      titleX = pad + avatarSize + Math.round(10 * unit)
+    } catch (_) {}
+  }
+
   ctx.save()
   ctx.font = `600 ${titleSize}px "LXGW WenKai", "Ma Shan Zheng", serif`
   ctx.fillStyle = '#3c3428'
   ctx.textAlign = 'left'; ctx.textBaseline = 'top'
-  ctx.fillText(`《${p.title}》`, pad, curY)
+  ctx.fillText(`《${p.title}》`, titleX, curY)
   ctx.restore()
   curY += Math.round(titleSize * 1.5) + secGap
 
@@ -1620,53 +1639,13 @@ async function renderPoster(): Promise<HTMLCanvasElement | null> {
   ctx.fillText('扫码体验', qrX + qrSize / 2, qrY + qrSize + Math.round(4 * unit))
   ctx.restore()
 
-  // 作者署名（如果用户开启了海报署名）
-  const posterAuthorOn = uni.getStorageSync('moyun_poster_author') !== 'false'
-  const authorAvatar = uni.getStorageSync('moyun_avatar') || ''
-  const authorName = uni.getStorageSync('moyun_nickname') || ''
-  if (posterAuthorOn && (authorAvatar || authorName)) {
-    const avatarSize = Math.round(32 * unit)
-    const nameSize = Math.round(14 * unit)
-    const authorY = H - Math.round(36 * unit)
-
-    let authorX = pad
-    if (authorAvatar) {
-      try {
-        const avImg = await loadImage(authorAvatar)
-        ctx.save()
-        ctx.beginPath()
-        ctx.arc(authorX + avatarSize / 2, authorY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2)
-        ctx.clip()
-        ctx.drawImage(avImg, authorX, authorY, avatarSize, avatarSize)
-        ctx.restore()
-        authorX += avatarSize + Math.round(8 * unit)
-      } catch (_) {}
-    }
-    if (authorName) {
-      ctx.save()
-      ctx.font = `${nameSize}px "LXGW WenKai", sans-serif`
-      ctx.fillStyle = 'rgba(60, 52, 40, 0.5)'
-      ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
-      ctx.fillText(authorName, authorX, authorY + avatarSize / 2)
-      ctx.restore()
-    }
-
-    // 品牌靠右
-    ctx.save()
-    ctx.font = `${brandSize}px "LXGW WenKai", sans-serif`
-    ctx.fillStyle = 'rgba(139, 115, 85, 0.3)'
-    ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'
-    ctx.fillText('墨韵AI · moyun.art', W - pad, H - Math.round(12 * unit))
-    ctx.restore()
-  } else {
-    // 无署名：品牌居中
-    ctx.save()
-    ctx.font = `${brandSize}px "LXGW WenKai", sans-serif`
-    ctx.fillStyle = 'rgba(139, 115, 85, 0.3)'
-    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'
-    ctx.fillText('墨韵AI · moyun.art', W / 2, H - Math.round(12 * unit))
-    ctx.restore()
-  }
+  // 品牌
+  ctx.save()
+  ctx.font = `${brandSize}px "LXGW WenKai", sans-serif`
+  ctx.fillStyle = 'rgba(139, 115, 85, 0.3)'
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'
+  ctx.fillText('墨韵AI · moyun.art', W / 2, H - Math.round(12 * unit))
+  ctx.restore()
 
   return canvas
 }
