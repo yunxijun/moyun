@@ -13,4 +13,15 @@ export default defineConfig({
       "@moyun/core/types": path.resolve(__dirname, "../../packages/core/src/types"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/three')) {
+            return 'vendor-three'
+          }
+        },
+      },
+    },
+  },
 });
