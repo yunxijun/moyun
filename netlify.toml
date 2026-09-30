@@ -1,11 +1,22 @@
 [build]
-  command = "pnpm build:h5"
+  command = "pnpm install && pnpm build:h5"
   publish = "apps/uni/dist/build/h5"
 
 [build.environment]
   NODE_VERSION = "22"
 
-# SPA 路由：所有路径回退到 index.html
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  included_files = ["server/src/**", "packages/core/src/**"]
+
+# API 路由 → Serverless Function
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+# SPA 路由：其余路径回退到 index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"
