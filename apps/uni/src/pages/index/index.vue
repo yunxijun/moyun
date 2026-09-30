@@ -56,8 +56,13 @@
           <text class="mode-tab-mark">典</text>
           <text class="mode-tab-label">经典重现</text>
         </view>
+        <view class="mode-divider" />
+        <view class="mode-tab" :class="{ active: mode === 'custom' }" @tap="mode = 'custom'">
+          <text class="mode-tab-mark">书</text>
+          <text class="mode-tab-label">自由书写</text>
+        </view>
       </view>
-      <text class="mode-desc">{{ mode === 'create' ? '输入主题，AI为你创作古典诗词' : '粘贴诗词原文，AI识别后生成书法' }}</text>
+      <text class="mode-desc">{{ mode === 'create' ? '输入主题，AI为你创作古典诗词' : mode === 'classic' ? '粘贴诗词原文，AI识别后生成书法' : '输入任意文字，生成书法作品' }}</text>
     </view>
 
     <!-- ═══ AI赋诗 模式 ═══ -->
@@ -229,6 +234,80 @@
               <text class="seal-char">{{ loading ? '别' : '毫' }}</text>
               <text class="seal-char">{{ loading ? '中' : '泼' }}</text>
               <text class="seal-char">{{ loading ? '…' : '墨' }}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </template>
+
+    <!-- ═══ 自由书写 模式 ═══ -->
+    <template v-if="mode === 'custom'">
+      <view class="ink-divider" />
+
+      <!-- 标题输入 -->
+      <view class="input-section">
+        <view class="letter-paper">
+          <view class="letter-margin" />
+          <view class="letter-margin-right" />
+          <view class="letter-watermark">题</view>
+          <textarea
+            v-model="customTitle"
+            class="input-area"
+            placeholder="作品标题（可选）"
+            :maxlength="30"
+            auto-height
+            :style="{ minHeight: '40px' }"
+          />
+        </view>
+      </view>
+
+      <!-- 正文输入 -->
+      <view class="input-section">
+        <view class="letter-paper classic-paper">
+          <view class="letter-margin" />
+          <view class="letter-margin-right" />
+          <view class="letter-watermark">文</view>
+          <textarea
+            v-model="customContent"
+            class="input-area classic-input"
+            placeholder="输入你想书写的文字…&#10;&#10;可以是诗词、名言、座右铭、&#10;祝福语、歌词，或任何文字。&#10;&#10;每行一句，会按行分列排版。"
+            :maxlength="2000"
+            auto-height
+          />
+          <view class="letter-lines">
+            <view v-for="n in 8" :key="n" class="letter-line" />
+          </view>
+        </view>
+      </view>
+
+      <!-- 译文/说明（可选） -->
+      <view class="input-section">
+        <view class="letter-paper">
+          <view class="letter-margin" />
+          <view class="letter-margin-right" />
+          <view class="letter-watermark">注</view>
+          <textarea
+            v-model="customNote"
+            class="input-area"
+            placeholder="补充说明或译文（可选）"
+            :maxlength="500"
+            auto-height
+            :style="{ minHeight: '40px' }"
+          />
+        </view>
+      </view>
+
+      <!-- 生成按钮 -->
+      <view class="generate-wrap">
+        <view class="seal-halo" :class="{ pulsing: true }" />
+        <view class="seal-ripple" :class="{ pulsing: true }" />
+        <view class="generate-seal" @tap="onCustomGenerate">
+          <view class="seal-border">
+            <view class="seal-inner">
+              <text class="seal-char">挥</text>
+              <text class="seal-char">毫</text>
+              <text class="seal-char">泼</text>
+              <text class="seal-char">墨</text>
             </view>
           </view>
         </view>
@@ -489,8 +568,11 @@ onMounted(() => fetchQuota())
 const streamingText = ref('')
 const streamingDone = ref(false)
 
-const mode = ref<'create' | 'classic'>('create')
+const mode = ref<'create' | 'classic' | 'custom'>('create')
 const classicInput = ref('')
+const customTitle = ref('')
+const customContent = ref('')
+const customNote = ref('')
 
 const classicPresets = [
   { title: '静夜思', author: '李白', content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。' },
@@ -757,6 +839,33 @@ async function onIdentify() {
     loading.value = false
     uni.showToast({ title: '网络异常，请重试', icon: 'none' })
   }
+}
+
+/** 自由书写：直接组装数据跳转，无需 API 调用 */
+function onCustomGenerate() {
+  const text = customContent.value.trim()
+  if (!text) {
+    uni.showToast({ title: '请输入要书写的文字', icon: 'none' })
+    return
+  }
+
+  const lines = text.split(/\n+/).map(l => l.trim()).filter(Boolean)
+  const title = customTitle.value.trim() || '自由书写'
+
+  const poemData = {
+    title,
+    genre: '自由',
+    content: lines,
+    translation: customNote.value.trim() || '',
+    appreciation: '',
+  }
+
+  uni.setStorageSync('moyun_nav_poem', JSON.stringify(poemData))
+  uni.setStorageSync('moyun_nav_input', JSON.stringify({
+    prompt: text,
+    mode: 'custom',
+  }))
+  uni.navigateTo({ url: '/pages/result/result?from=storage' })
 }
 </script>
 
