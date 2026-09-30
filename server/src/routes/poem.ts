@@ -49,7 +49,7 @@ poemRoutes.post('/generate', async (c) => {
     }
     const poem = parsePoemResult(raw)
     consumeQuota(userId)
-    savePoem(userId, poem)
+    await savePoem(userId, poem)
 
     return c.json<ApiResponse<PoemResult>>({
       success: true,
@@ -105,7 +105,7 @@ poemRoutes.post('/generate-stream', async (c) => {
 
       consumeQuota(userId)
       const poem = parsePoemResult(raw)
-      savePoem(userId, poem)
+      await savePoem(userId, poem)
       const info = getQuotaInfo(userId)
       await stream.writeSSE({ data: JSON.stringify({ type: 'done', poem, quota: info }) })
     } catch (err) {
@@ -220,7 +220,7 @@ poemRoutes.post('/identify', async (c) => {
 /** GET /api/poem/detail/:id — 按 ID 获取单条诗词 */
 poemRoutes.get('/detail/:id', async (c) => {
   const id = c.req.param('id')
-  const record = getPoemById(id)
+  const record = await getPoemById(id)
   if (!record) {
     return c.json({ success: false, error: '诗词不存在或已过期' }, 404)
   }

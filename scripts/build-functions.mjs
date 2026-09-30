@@ -13,7 +13,7 @@ await build({
   target: 'node22',
   format: 'esm',
   banner: { js: "import { createRequire } from 'module'; const require = createRequire(import.meta.url);" },
-  external: [],
+  external: ['@netlify/blobs'],
   nodePaths: [
     path.resolve(root, 'node_modules'),
     path.resolve(root, 'server/node_modules'),

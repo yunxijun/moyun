@@ -12,7 +12,7 @@ function getUserId(c: any): string {
 /** GET /api/user/profile — 用户信息 + 统计 */
 userRoutes.get('/profile', async (c) => {
   const userId = getUserId(c)
-  const stats = getUserStats(userId)
+  const stats = await getUserStats(userId)
   const quota = getQuotaInfo(userId)
 
   return c.json({
@@ -31,7 +31,7 @@ userRoutes.get('/profile', async (c) => {
 userRoutes.get('/history', async (c) => {
   const userId = getUserId(c)
   const page = Number(c.req.query('page')) || 1
-  const result = getUserHistory(userId, page)
+  const result = await getUserHistory(userId, page)
 
   return c.json({ success: true, data: result })
 })
@@ -39,7 +39,7 @@ userRoutes.get('/history', async (c) => {
 /** GET /api/user/featured — 精选作品（公开） */
 userRoutes.get('/featured', async (c) => {
   const page = Number(c.req.query('page')) || 1
-  const result = getFeaturedPoems(page)
+  const result = await getFeaturedPoems(page)
 
   return c.json({ success: true, data: result })
 })

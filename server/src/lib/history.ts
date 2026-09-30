@@ -1,5 +1,7 @@
 /**
- * 诗词生成历史（JSON 文件持久化，正式上线迁移到数据库）
+ * 诗词生成历史 — 双存储后端
+ * - Netlify 环境：使用 Netlify Blobs（持久化 KV）
+ * - 本地开发：使用内存 + JSON 文件
  */
 import type { PoemResult } from '@moyun/core'
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
@@ -13,18 +15,39 @@ export interface PoemRecord {
   background?: string
 }
 
-// 持久化路径
+const IS_NETLIFY = !!process.env.NETLIFY
+
+/* ═══════════════════════════════════════════
+ *  Netlify Blobs 存储
+ *  Store "poems":        key=poemId   → PoemRecord
+ *  Store "user-history": key=userId   → PoemRecord[]
+ *  Store "featured":     key="list"   → PoemRecord[]
+ * ═══════════════════════════════════════════ */
+
+let _blobStores: { poems: any; userHistory: any; featured: any } | null = null
+
+async function getBlobStores() {
+  if (_blobStores) return _blobStores
+  const { getStore } = await import('@netlify/blobs')
+  _blobStores = {
+    poems: getStore('poems'),
+    userHistory: getStore('user-history'),
+    featured: getStore('featured'),
+  }
+  return _blobStores
+}
+
+/* ═══════════════════════════════════════════
+ *  本地文件存储（开发用）
+ * ═══════════════════════════════════════════ */
+
 const DATA_DIR = join(process.cwd(), '.data')
 const HISTORY_FILE = join(DATA_DIR, 'history.json')
 const FEATURED_FILE = join(DATA_DIR, 'featured.json')
 
-// 内存存储
 const historyMap = new Map<string, PoemRecord[]>()
-
-// 精选作品池（公开展示）
 let featuredPoems: PoemRecord[] = []
 
-// 启动时从文件加载
 function loadFromDisk() {
   try {
     if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true })
@@ -55,83 +78,121 @@ function saveToDisk() {
   }
 }
 
-// 初始化加载
-loadFromDisk()
+if (!IS_NETLIFY) loadFromDisk()
+
+/* ═══════════════════════════════════════════
+ *  公共 API（自动切换存储后端）
+ * ═══════════════════════════════════════════ */
 
 function genId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
 }
 
 /** 保存一条生成记录 */
-export function savePoem(userId: string, poem: PoemResult): PoemRecord {
+export async function savePoem(userId: string, poem: PoemResult): Promise<PoemRecord> {
   const record: PoemRecord = {
     id: genId(),
     poem,
     createdAt: new Date().toISOString(),
   }
 
-  const list = historyMap.get(userId) || []
-  list.unshift(record)
-  if (list.length > 100) list.pop()
-  historyMap.set(userId, list)
-
-  // 随机 30% 概率加入精选（模拟审核）
-  if (featuredPoems.length < 50 && Math.random() < 0.3) {
-    featuredPoems.unshift(record)
+  if (IS_NETLIFY) {
+    const stores = await getBlobStores()
+    // 存单条诗词
+    await stores.poems.setJSON(record.id, record)
+    // 更新用户历史列表
+    const list: PoemRecord[] = (await stores.userHistory.get(userId, { type: 'json' })) || []
+    list.unshift(record)
+    if (list.length > 100) list.pop()
+    await stores.userHistory.setJSON(userId, list)
+    // 随机加入精选
+    if (Math.random() < 0.3) {
+      const featured: PoemRecord[] = (await stores.featured.get('list', { type: 'json' })) || []
+      if (featured.length < 50) {
+        featured.unshift(record)
+        await stores.featured.setJSON('list', featured)
+      }
+    }
+  } else {
+    const list = historyMap.get(userId) || []
+    list.unshift(record)
+    if (list.length > 100) list.pop()
+    historyMap.set(userId, list)
+    if (featuredPoems.length < 50 && Math.random() < 0.3) {
+      featuredPoems.unshift(record)
+    }
+    saveToDisk()
   }
-
-  // 持久化到磁盘
-  saveToDisk()
 
   return record
 }
 
-/** 按 ID 查询单条诗词（遍历所有用户） */
-export function getPoemById(id: string): PoemRecord | null {
+/** 按 ID 查询单条诗词 */
+export async function getPoemById(id: string): Promise<PoemRecord | null> {
+  if (IS_NETLIFY) {
+    const stores = await getBlobStores()
+    const record = await stores.poems.get(id, { type: 'json' })
+    return record || null
+  }
+
   for (const list of historyMap.values()) {
     const found = list.find(r => r.id === id)
     if (found) return found
   }
-  const found = featuredPoems.find(r => r.id === id)
-  return found || null
+  return featuredPoems.find(r => r.id === id) || null
 }
 
 /** 查询用户历史 */
-export function getUserHistory(userId: string, page = 1, pageSize = 20): {
+export async function getUserHistory(userId: string, page = 1, pageSize = 20): Promise<{
   items: PoemRecord[]
   total: number
-} {
+}> {
+  if (IS_NETLIFY) {
+    const stores = await getBlobStores()
+    const list: PoemRecord[] = (await stores.userHistory.get(userId, { type: 'json' })) || []
+    const start = (page - 1) * pageSize
+    return { items: list.slice(start, start + pageSize), total: list.length }
+  }
+
   const list = historyMap.get(userId) || []
   const start = (page - 1) * pageSize
-  return {
-    items: list.slice(start, start + pageSize),
-    total: list.length,
-  }
+  return { items: list.slice(start, start + pageSize), total: list.length }
 }
 
 /** 获取精选作品 */
-export function getFeaturedPoems(page = 1, pageSize = 10): {
+export async function getFeaturedPoems(page = 1, pageSize = 10): Promise<{
   items: PoemRecord[]
   total: number
-} {
-  const start = (page - 1) * pageSize
-  return {
-    items: featuredPoems.slice(start, start + pageSize),
-    total: featuredPoems.length,
+}> {
+  if (IS_NETLIFY) {
+    const stores = await getBlobStores()
+    const list: PoemRecord[] = (await stores.featured.get('list', { type: 'json' })) || []
+    const start = (page - 1) * pageSize
+    return { items: list.slice(start, start + pageSize), total: list.length }
   }
+
+  const start = (page - 1) * pageSize
+  return { items: featuredPoems.slice(start, start + pageSize), total: featuredPoems.length }
 }
 
 /** 获取用户统计 */
-export function getUserStats(userId: string): {
+export async function getUserStats(userId: string): Promise<{
   totalPoems: number
   todayPoems: number
   favoriteGenre: string
-} {
-  const list = historyMap.get(userId) || []
+}> {
+  let list: PoemRecord[]
+
+  if (IS_NETLIFY) {
+    const stores = await getBlobStores()
+    list = (await stores.userHistory.get(userId, { type: 'json' })) || []
+  } else {
+    list = historyMap.get(userId) || []
+  }
+
   const today = new Date().toISOString().slice(0, 10)
   const todayPoems = list.filter(r => r.createdAt.startsWith(today)).length
 
-  // 统计最常用体裁
   const genreCount: Record<string, number> = {}
   for (const r of list) {
     const g = r.poem.genre || '未知'
