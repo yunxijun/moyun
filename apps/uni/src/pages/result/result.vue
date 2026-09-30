@@ -674,9 +674,38 @@
             </view>
           </view>
 
+          <!-- 灵感图片 -->
+          <view class="share-row">
+            <text class="share-label">灵感图片</text>
+            <view class="poster-images">
+              <view v-if="posterImage" class="poster-img-item">
+                <image :src="posterImage" class="poster-img-thumb" mode="aspectFill" @tap="previewPosterImage" />
+                <text class="poster-img-remove" @tap.stop="removePosterImage">×</text>
+              </view>
+              <view class="poster-img-add" @tap="pickPosterImage">
+                <text class="poster-img-add-icon">+</text>
+                <text class="poster-img-add-text">{{ posterImage ? '更换' : '选择' }}</text>
+              </view>
+            </view>
+          </view>
+
+          <template v-if="posterImage">
+            <view class="share-row">
+              <text class="share-label">图片填充区域</text>
+              <view class="share-chips">
+                <text v-for="r in IMG_FILL_REGIONS" :key="r.key" class="share-chip" :class="{ active: posterImgRegion === r.key }" @tap="posterImgRegion = r.key; updatePosterPreview()">{{ r.label }}</text>
+              </view>
+            </view>
+            <view class="share-row">
+              <text class="share-label">图片不透明度 {{ Math.round(posterImgOpacity * 100) }}%</text>
+              <slider class="ink-slider" :value="posterImgOpacity * 100" :min="5" :max="100" :step="5" activeColor="#5b7f95" backgroundColor="rgba(26,26,46,0.1)" block-size="14" @changing="(e: any) => { posterImgOpacity = e.detail.value / 100; updatePosterPreview() }" @change="(e: any) => { posterImgOpacity = e.detail.value / 100; updatePosterPreview() }" />
+            </view>
+          </template>
+
           <!-- 海报预览 -->
           <view class="poster-preview-wrap">
-            <canvas id="posterPreviewCanvas" class="poster-preview-canvas" />
+            <image v-if="posterPreviewUrl" :src="posterPreviewUrl" class="poster-preview-img" mode="widthFix" />
+            <text v-else class="poster-preview-loading">{{ posterGenerating ? '生成中...' : '点击下方按钮生成预览' }}</text>
           </view>
 
           <!-- 操作按钮 -->
@@ -708,7 +737,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
-import QRCode from 'qrcode'
+import qrGenerator from 'qrcode-generator'
 import type { PoemResult, CalligraphyFont, CardBackground, CardTemplate, Calligrapher, CalligraphyScript } from '@moyun/core'
 import {
   CALLIGRAPHY_FONTS,
@@ -1302,15 +1331,13 @@ const printOutputInfo = computed(() => {
 
 // 分享海报
 const showSharePanel = ref(false)
-const posterTemplate = ref('xiaohongshu')
+const posterTemplate = ref('elegant')
 const copyStyle = ref('xiaohongshu')
 
-interface PosterTemplate { key: string; label: string; width: number; height: number; desc: string }
+interface PosterTemplate { key: string; label: string; desc: string }
 const POSTER_TEMPLATES: PosterTemplate[] = [
-  { key: 'xiaohongshu', label: '小红书', width: 1080, height: 1440, desc: '3:4 竖版' },
-  { key: 'wechat', label: '朋友圈', width: 1080, height: 1080, desc: '1:1 方形' },
-  { key: 'weibo', label: '微博', width: 1080, height: 720, desc: '3:2 横版' },
-  { key: 'story', label: '故事', width: 1080, height: 1920, desc: '9:16 全屏' },
+  { key: 'elegant', label: '标准', desc: '诗词+译文+二维码' },
+  { key: 'clean', label: '简约', desc: '仅品牌水印' },
 ]
 
 const COPY_STYLES = [
@@ -1338,151 +1365,267 @@ const shareText = computed(() => {
   }
 })
 
+const posterPreviewUrl = ref('')
+const posterGenerating = ref(false)
+const posterImage = ref('')
+const posterImgRegion = ref<'bottom' | 'top' | 'full'>('bottom')
+const posterImgOpacity = ref(0.22)
+const IMG_FILL_REGIONS = [
+  { key: 'bottom', label: '信息区' },
+  { key: 'top', label: '卡片区' },
+  { key: 'full', label: '整张海报' },
+]
 let posterQrDataUrl: string | null = null
+
+function pickPosterImage() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = () => {
+    const file = input.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      posterImage.value = reader.result as string
+      updatePosterPreview()
+    }
+    reader.readAsDataURL(file)
+  }
+  input.click()
+}
+
+function removePosterImage() {
+  posterImage.value = ''
+  updatePosterPreview()
+}
+
+function previewPosterImage() {
+  if (posterImage.value) {
+    uni.previewImage({ current: posterImage.value, urls: [posterImage.value] })
+  }
+}
 
 async function ensureQRCode(): Promise<string> {
   if (posterQrDataUrl) return posterQrDataUrl
-  posterQrDataUrl = await QRCode.toDataURL('https://moyun.art', {
-    width: 200, margin: 1, color: { dark: '#2c2c2e', light: '#ffffff00' },
-    errorCorrectionLevel: 'M',
-  })
+  const qr = qrGenerator(0, 'M')
+  qr.addData('https://moyun.art')
+  qr.make()
+
+  const moduleCount = qr.getModuleCount()
+  const cellSize = Math.ceil(200 / moduleCount)
+  const size = cellSize * moduleCount
+  const c = document.createElement('canvas')
+  c.width = size; c.height = size
+  const ctx = c.getContext('2d')!
+  for (let row = 0; row < moduleCount; row++) {
+    for (let col = 0; col < moduleCount; col++) {
+      ctx.fillStyle = qr.isDark(row, col) ? '#2c2c2e' : 'rgba(255,255,255,0)'
+      ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize)
+    }
+  }
+  posterQrDataUrl = c.toDataURL('image/png')
   return posterQrDataUrl
 }
 
 async function renderPoster(): Promise<HTMLCanvasElement | null> {
-  const tmpl = POSTER_TEMPLATES.find(t => t.key === posterTemplate.value) || POSTER_TEMPLATES[0]
-  const W = tmpl.width, H = tmpl.height
+  const tmplKey = posterTemplate.value
+  const p = poem.value
+  await ensureFontReady(currentFont.value)
+
+  // ── 1. 生成卡片图 ──
+  const cardResult = await exportWithMount(2)
+  if (!cardResult) return null
+  const img = await loadImage(URL.createObjectURL(cardResult.blob))
+  const cardW = img.width, cardH = img.height
+  const W = cardW
+  const pad = Math.round(W * 0.045)
+  const unit = W / 1080 // 基准缩放因子
+
+  // ── 2. 预排底部信息区内容，计算所需高度 ──
+  const tmpCanvas = document.createElement('canvas')
+  tmpCanvas.width = W; tmpCanvas.height = 1
+  const tmpCtx = tmpCanvas.getContext('2d')!
+
+  const titleSize = Math.round(28 * unit)
+  const poemSize = Math.round(22 * unit)
+  const transSize = Math.round(18 * unit)
+  const apprecSize = Math.round(16 * unit)
+  const brandSize = Math.round(14 * unit)
+  const lineH = 1.7
+  const textAreaW = W - pad * 2 - Math.round(110 * unit) // 留出二维码区域
+
+  function wrapText(text: string, fontSize: number, maxW: number): string[] {
+    tmpCtx.font = `${fontSize}px "LXGW WenKai", serif`
+    const lines: string[] = []
+    let cur = ''
+    for (const ch of text) {
+      if (tmpCtx.measureText(cur + ch).width > maxW) {
+        lines.push(cur); cur = ch
+      } else { cur += ch }
+    }
+    if (cur) lines.push(cur)
+    return lines
+  }
+
+  // 预计算各区域行数（两句合一行，逗号分隔）
+  const rawLines = p.content.map(l => l.trim()).filter(Boolean)
+  const poemLines: string[] = []
+  for (let i = 0; i < rawLines.length; i += 2) {
+    poemLines.push(i + 1 < rawLines.length ? `${rawLines[i]}，${rawLines[i + 1]}` : rawLines[i])
+  }
+  const transLines = wrapText(p.translation || '', transSize, textAreaW)
+
+  // 优先用海报面板选择的图片，其次用用户上传的图片
+  const posterBgImage = posterImage.value || (userInput.value.images?.length ? userInput.value.images[0] : '')
+  const hasUserImages = !!posterBgImage
+
+  // 计算信息区总高度（宽松布局）
+  const topPad = Math.round(40 * unit)
+  const botPad = Math.round(48 * unit)
+  const secGap = Math.round(24 * unit)
+
+  let infoH = topPad + botPad
+  if (tmplKey === 'clean') {
+    infoH = Math.round(70 * unit)
+  } else {
+    infoH += Math.round(titleSize * 1.5)
+    infoH += secGap
+    infoH += Math.round(poemLines.length * poemSize * lineH)
+    infoH += secGap
+    infoH += Math.round(transLines.length * transSize * lineH)
+  }
+
+  // ── 3. 创建画布 ──
+  const H = cardH + infoH
   const canvas = document.createElement('canvas')
   canvas.width = W; canvas.height = H
   const ctx = canvas.getContext('2d')
-  if (!ctx) return null
+  if (!ctx) { URL.revokeObjectURL(img.src); return null }
 
-  // 背景渐变
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, H)
-  bgGrad.addColorStop(0, '#f7f3ee')
-  bgGrad.addColorStop(0.5, '#f0ebe3')
-  bgGrad.addColorStop(1, '#e8e0d4')
-  ctx.fillStyle = bgGrad
+  // ── 4. 底色 + 卡片 ──
+  const imgUrl = img.src
+  ctx.fillStyle = '#f4f0ea'
   ctx.fillRect(0, 0, W, H)
+  ctx.drawImage(img, 0, 0, cardW, cardH)
 
-  // 底部纹理装饰条
-  ctx.fillStyle = 'rgba(91, 127, 149, 0.06)'
-  ctx.fillRect(0, H - 200, W, 200)
+  // ── 5. 信息区 ──
+  const infoTop = cardH
 
-  // 顶部品牌标识
-  await ensureFontReady(currentFont.value)
-  ctx.save()
-  ctx.font = '600 28px "LXGW WenKai", "Ma Shan Zheng", serif'
-  ctx.fillStyle = '#5b7f95'
-  ctx.textAlign = 'left'
-  ctx.textBaseline = 'top'
-  ctx.fillText('墨韵AI · 一念成诗', 48, 40)
-  ctx.restore()
-
-  // 顶部分隔线
-  ctx.strokeStyle = 'rgba(91, 127, 149, 0.2)'
-  ctx.lineWidth = 1
-  ctx.beginPath(); ctx.moveTo(48, 80); ctx.lineTo(W - 48, 80); ctx.stroke()
-
-  // 书法卡片区域（居中）
-  const cardResult = await exportWithMount(2)
-  if (cardResult) {
-    const img = await loadImage(URL.createObjectURL(cardResult.blob))
-    const cardAreaTop = 100
-    const cardAreaH = H - 320
-    const cardAreaW = W - 96
-
-    const imgRatio = img.width / img.height
-    const areaRatio = cardAreaW / cardAreaH
-    let drawW: number, drawH: number
-    if (imgRatio > areaRatio) {
-      drawW = cardAreaW; drawH = cardAreaW / imgRatio
-    } else {
-      drawH = cardAreaH; drawW = cardAreaH * imgRatio
-    }
-    const dx = (W - drawW) / 2
-    const dy = cardAreaTop + (cardAreaH - drawH) / 2
-
-    // 卡片阴影
+  if (tmplKey === 'clean') {
     ctx.save()
-    ctx.shadowColor = 'rgba(0,0,0,0.12)'
-    ctx.shadowBlur = 24
-    ctx.shadowOffsetY = 8
-    ctx.drawImage(img, dx, dy, drawW, drawH)
+    ctx.font = `${brandSize}px "LXGW WenKai", sans-serif`
+    ctx.fillStyle = 'rgba(139, 115, 85, 0.4)'
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.fillText('墨韵AI · moyun.art · 一念成诗', W / 2, infoTop + infoH / 2)
     ctx.restore()
-    URL.revokeObjectURL(img.src)
+    URL.revokeObjectURL(imgUrl)
+    return canvas
   }
 
-  // 底部信息区
-  const footerY = H - 180
-  const p = poem.value
+  // ── 用户图片背景（支持区域 + 不透明度） ──
+  if (hasUserImages) {
+    try {
+      const bgImg = await loadImage(posterBgImage)
+      const region = posterImgRegion.value
+      const opacity = posterImgOpacity.value
 
-  // 诗词标题
-  ctx.save()
-  ctx.font = '600 26px "LXGW WenKai", "Ma Shan Zheng", serif'
-  ctx.fillStyle = '#2c2c2e'
-  ctx.textAlign = 'left'
-  ctx.textBaseline = 'top'
-  ctx.fillText(`《${p.title}》`, 48, footerY)
-  ctx.restore()
+      // 确定绘制区域
+      let ry: number, rh: number
+      if (region === 'bottom') { ry = infoTop; rh = infoH }
+      else if (region === 'top') { ry = 0; rh = cardH }
+      else { ry = 0; rh = H }
 
-  // 诗词内容（一行展示）
-  ctx.save()
-  ctx.font = '20px "LXGW WenKai", serif'
-  ctx.fillStyle = 'rgba(44,44,46,0.65)'
-  ctx.textAlign = 'left'
-  ctx.textBaseline = 'top'
-  const poemLine = p.content.join('  ')
-  const maxTextW = W - 260
-  let displayLine = poemLine
-  if (ctx.measureText(poemLine).width > maxTextW) {
-    while (ctx.measureText(displayLine + '…').width > maxTextW && displayLine.length > 0) {
-      displayLine = displayLine.slice(0, -1)
-    }
-    displayLine += '…'
+      ctx.save()
+      ctx.beginPath(); ctx.rect(0, ry, W, rh); ctx.clip()
+
+      // cover 填充清晰图片
+      const imgR = bgImg.width / bgImg.height
+      const areaR = W / rh
+      let dw: number, dh: number, dx: number, dy: number
+      if (imgR > areaR) { dh = rh; dw = rh * imgR; dx = (W - dw) / 2; dy = ry }
+      else { dw = W; dh = W / imgR; dx = 0; dy = ry + (rh - dh) / 2 }
+
+      ctx.globalAlpha = opacity
+      ctx.drawImage(bgImg, dx, dy, dw, dh)
+      ctx.globalAlpha = 1
+      ctx.restore()
+
+      // 如果图片在卡片区或全部，重绘卡片（透明度随图片反向）
+      if (region !== 'bottom') {
+        ctx.save()
+        ctx.globalAlpha = Math.max(0, 1 - opacity)
+        ctx.drawImage(img, 0, 0, cardW, cardH)
+        ctx.restore()
+      }
+    } catch (_) {}
   }
-  ctx.fillText(displayLine, 48, footerY + 40)
-  ctx.restore()
 
-  // 译文
+  URL.revokeObjectURL(imgUrl)
+
+  // 分隔线
+  ctx.strokeStyle = 'rgba(139, 115, 85, 0.1)'
+  ctx.lineWidth = 0.5
+  ctx.beginPath()
+  ctx.moveTo(pad, infoTop + Math.round(10 * unit))
+  ctx.lineTo(W - pad, infoTop + Math.round(10 * unit))
+  ctx.stroke()
+
+  let curY = infoTop + topPad
+
+  // 标题
   ctx.save()
-  ctx.font = '16px "LXGW WenKai", sans-serif'
-  ctx.fillStyle = 'rgba(44,44,46,0.45)'
-  ctx.textAlign = 'left'
-  ctx.textBaseline = 'top'
-  let transLine = p.translation
-  const maxTransW = W - 260
-  if (ctx.measureText(transLine).width > maxTransW) {
-    while (ctx.measureText(transLine + '…').width > maxTransW && transLine.length > 0) {
-      transLine = transLine.slice(0, -1)
-    }
-    transLine += '…'
+  ctx.font = `600 ${titleSize}px "LXGW WenKai", "Ma Shan Zheng", serif`
+  ctx.fillStyle = '#3c3428'
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'
+  ctx.fillText(`《${p.title}》`, pad, curY)
+  ctx.restore()
+  curY += Math.round(titleSize * 1.5) + secGap
+
+  // 诗句逐行
+  ctx.save()
+  ctx.font = `${poemSize}px "LXGW WenKai", serif`
+  ctx.fillStyle = 'rgba(60, 52, 40, 0.7)'
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'
+  for (const line of poemLines) {
+    ctx.fillText(line, pad, curY)
+    curY += Math.round(poemSize * lineH)
   }
-  ctx.fillText(transLine, 48, footerY + 72)
+  ctx.restore()
+  curY += secGap
+
+  // 译文自动换行
+  ctx.save()
+  ctx.font = `${transSize}px "LXGW WenKai", sans-serif`
+  ctx.fillStyle = 'rgba(60, 52, 40, 0.4)'
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'
+  for (const line of transLines) {
+    ctx.fillText(line, pad, curY)
+    curY += Math.round(transSize * lineH)
+  }
   ctx.restore()
 
-  // 二维码
+  // 二维码（右下角，与标题对齐）
   const qrUrl = await ensureQRCode()
   const qrImg = await loadImage(qrUrl)
-  const qrSize = 100
-  ctx.drawImage(qrImg, W - 48 - qrSize, footerY - 10, qrSize, qrSize)
-
-  // 二维码下方提示
+  const qrSize = Math.round(80 * unit)
+  const qrX = W - pad - qrSize
+  const qrY = infoTop + pad
+  ctx.save(); ctx.globalAlpha = 0.55
+  ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
+  ctx.restore()
   ctx.save()
-  ctx.font = '12px sans-serif'
-  ctx.fillStyle = 'rgba(44,44,46,0.35)'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'top'
-  ctx.fillText('扫码体验', W - 48 - qrSize / 2, footerY + qrSize)
+  ctx.font = `${Math.round(11 * unit)}px sans-serif`
+  ctx.fillStyle = 'rgba(60, 52, 40, 0.25)'
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top'
+  ctx.fillText('扫码体验', qrX + qrSize / 2, qrY + qrSize + Math.round(4 * unit))
   ctx.restore()
 
-  // 底部品牌
+  // 品牌
   ctx.save()
-  ctx.font = '14px "LXGW WenKai", sans-serif'
-  ctx.fillStyle = 'rgba(91, 127, 149, 0.5)'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'bottom'
-  ctx.fillText('moyun.art · 用AI把你的故事写成诗篇', W / 2, H - 24)
+  ctx.font = `${brandSize}px "LXGW WenKai", sans-serif`
+  ctx.fillStyle = 'rgba(139, 115, 85, 0.3)'
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'
+  ctx.fillText('墨韵AI · moyun.art', W / 2, H - Math.round(12 * unit))
   ctx.restore()
 
   return canvas
@@ -1507,8 +1650,8 @@ async function onSavePoster() {
     if (!blob) return
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
-    const tmpl = POSTER_TEMPLATES.find(t => t.key === posterTemplate.value)
-    link.download = `墨韵_${poem.value.title}_${tmpl?.label || '海报'}.png`
+    const style = POSTER_TEMPLATES.find(t => t.key === posterTemplate.value)
+    link.download = `墨韵_${poem.value.title}_${style?.label || '海报'}.png`
     link.href = url
     link.click()
     URL.revokeObjectURL(url)
@@ -1518,23 +1661,14 @@ async function onSavePoster() {
 }
 
 async function updatePosterPreview() {
-  const previewCanvas = document.getElementById('posterPreviewCanvas') as HTMLCanvasElement
-  if (!previewCanvas) return
-
-  const canvas = await renderPoster()
-  if (!canvas) return
-
-  const tmpl = POSTER_TEMPLATES.find(t => t.key === posterTemplate.value) || POSTER_TEMPLATES[0]
-  const maxPreviewW = 320
-  const previewScale = maxPreviewW / tmpl.width
-  previewCanvas.width = tmpl.width * previewScale
-  previewCanvas.height = tmpl.height * previewScale
-  previewCanvas.style.width = `${previewCanvas.width}px`
-  previewCanvas.style.height = `${previewCanvas.height}px`
-
-  const pCtx = previewCanvas.getContext('2d')
-  if (pCtx) {
-    pCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height)
+  posterGenerating.value = true
+  posterPreviewUrl.value = ''
+  try {
+    const canvas = await renderPoster()
+    if (!canvas) return
+    posterPreviewUrl.value = canvas.toDataURL('image/jpeg', 0.9)
+  } finally {
+    posterGenerating.value = false
   }
 }
 
@@ -3372,6 +3506,7 @@ watch(
   [currentFont, currentBg, currentTmpl, currentBorder, currentTexture, currentTextureType, textureStrength, fontScale, stampText, stampSizeVal, stampShape, stampPosition, stampFontKey, stampX, stampY, offsetX, offsetY, previewScale, colophonCalligrapher, colophonVerb, colophonShowDate, colophonOffsetX, colophonOffsetY, colophonLayout, colSpacingScale, charSpacingScale, customWidth, customHeight, currentMount],
   async () => {
     await renderCard()
+    if (showSharePanel.value) updatePosterPreview()
   },
 )
 
@@ -3395,6 +3530,9 @@ watch(() => currentMount.value, (val) => {
 
 watch([showSharePanel, posterTemplate], async () => {
   if (showSharePanel.value) {
+    if (!posterImage.value && userInput.value.images?.length) {
+      posterImage.value = userInput.value.images[0]
+    }
     await nextTick()
     updatePosterPreview()
   }
@@ -5977,16 +6115,49 @@ $breakpoint: 768px;
     font-weight: 500;
   }
 }
+.poster-images {
+  display: flex; align-items: center; gap: 12px;
+}
+.poster-img-item {
+  position: relative; width: 64px; height: 64px; border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--c-ink-08);
+}
+.poster-img-thumb {
+  width: 64px; height: 64px;
+}
+.poster-img-remove {
+  position: absolute; top: -1px; right: -1px;
+  width: 20px; height: 20px; line-height: 20px; text-align: center;
+  background: rgba(0,0,0,0.5); color: #fff; font-size: 14px;
+  border-radius: 0 8px 0 8px; cursor: pointer;
+}
+.poster-img-add {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 64px; height: 64px; border-radius: 8px;
+  border: 1px dashed var(--c-ink-15); cursor: pointer;
+  transition: border-color 0.2s;
+  &:active { border-color: #5b7f95; }
+}
+.poster-img-add-icon {
+  font-size: 20px; color: var(--c-ink-25); line-height: 1;
+}
+.poster-img-add-text {
+  font-size: 10px; color: var(--c-ink-35); margin-top: 2px;
+}
 .poster-preview-wrap {
   display: flex; justify-content: center; align-items: center;
-  padding: 16px 0; min-height: 200px;
+  padding: 16px; min-height: 200px;
   background: var(--c-ink-04); border-radius: 8px;
   margin-bottom: 14px;
 }
-.poster-preview-canvas {
+.poster-preview-img {
+  width: 280px;
   border-radius: 6px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  max-width: 100%;
+}
+.poster-preview-loading {
+  font-size: 13px; color: var(--c-ink-35);
+  letter-spacing: 1px;
 }
 .share-actions {
   display: flex; gap: 10px; margin-bottom: 16px;
