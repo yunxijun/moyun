@@ -27,6 +27,7 @@
               :class="{ active: preview3DMode === 'flat' }"
               @tap="switchToFlat()"
             ><text>平面</text></view>
+            <!-- #ifdef H5 -->
             <view
               class="preview-3d-chip"
               :class="{ active: preview3DMode === 'tilt' }"
@@ -42,6 +43,7 @@
               :class="{ active: preview3DMode === 'scene' }"
               @tap="switchTo3DScene()"
             ><text>场景</text></view>
+            <!-- #endif -->
           </view>
           <view class="preview-zoom-bar">
             <text class="preview-zoom-label">大小</text>
@@ -758,6 +760,7 @@ import {
 } from '@moyun/core/calligraphy'
 import type { BorderStyle, TextureIntensity, TextureType, StampPosition } from '@moyun/core/calligraphy'
 
+// #ifdef H5
 // Google Fonts 系列（行/草/手写）
 import '@fontsource/ma-shan-zheng'
 import '@fontsource/liu-jian-mao-cao'
@@ -782,12 +785,18 @@ import 'cn-fontsource-long-zhu-ti-regular/font.css'
 import 'cn-fontsource-yozai-regular/font.css'
 import 'cn-fontsource-975-maru-sc-regular/font.css'
 import 'cn-fontsource-xiaolai-mono-sc-regular/font.css'
+// #endif
 
+// #ifdef H5
 // 自托管字体 woff2（用 ?url 获取 Vite 解析后的 URL）
 import ziXiaoHunLiShuUrl from '@/assets/fonts/ZiXiaoHunLiShu.woff2?url'
 import shouJinTiUrl from '@/assets/fonts/ShouJinTi.woff2?url'
 import xiaoZhuanUrl from '@/assets/fonts/XiaoZhuan.woff2?url'
 import maoZeDongUrl from '@/assets/fonts/MaoZeDong.woff2?url'
+// #endif
+// #ifndef H5
+const ziXiaoHunLiShuUrl = '', shouJinTiUrl = '', xiaoZhuanUrl = '', maoZeDongUrl = ''
+// #endif
 import { useTheme } from '@/composables/useTheme'
 
 const { isDark } = useTheme()
@@ -3948,6 +3957,7 @@ async function onShare() {
 
 <style lang="scss">
 /* 青柳隷书（ZeoSeven CDN，免费商用日本隶书） */
+/* #ifdef H5 */
 @import url("https://fontsapi.zeoseven.com/2204/main/result.css");
 
 /* 阿里妈妈刀隶体 @font-face（fontpkg 原始文件） */
@@ -3958,6 +3968,7 @@ async function onShare() {
   font-style: normal;
   font-display: swap;
 }
+/* #endif */
 
 /* 自托管字体通过 JS FontFace API 动态加载，见 ensureFontReady() */
 

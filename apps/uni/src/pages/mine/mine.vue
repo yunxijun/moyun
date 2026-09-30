@@ -405,6 +405,7 @@ const avatarUrl = ref(uni.getStorageSync(AVATAR_KEY) || '')
 const showAuthorInPoster = ref(uni.getStorageSync(POSTER_AUTHOR_KEY) !== 'false')
 
 function onPickAvatar() {
+  // #ifdef H5
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
@@ -417,7 +418,6 @@ function onPickAvatar() {
     }
     const reader = new FileReader()
     reader.onload = () => {
-      // 裁切为正方形并压缩
       const img = new Image()
       img.onload = () => {
         const size = Math.min(img.width, img.height, 400)
@@ -436,6 +436,20 @@ function onPickAvatar() {
     reader.readAsDataURL(file)
   }
   input.click()
+  // #endif
+  // #ifdef MP-WEIXIN
+  uni.chooseImage({
+    count: 1,
+    sizeType: ['compressed'],
+    sourceType: ['album', 'camera'],
+    success: (res) => {
+      const tempPath = res.tempFilePaths[0]
+      avatarUrl.value = tempPath
+      uni.setStorageSync(AVATAR_KEY, tempPath)
+      uni.showToast({ title: '头像已更新', icon: 'success' })
+    },
+  })
+  // #endif
 }
 
 function removeAvatar() {
@@ -458,7 +472,9 @@ const cursorStyle = ref<CursorStyle>((uni.getStorageSync('moyun_cursor') as Curs
 function onSetCursor(style: CursorStyle) {
   cursorStyle.value = style
   uni.setStorageSync('moyun_cursor', style)
+  // #ifdef H5
   document.documentElement.setAttribute('data-cursor', style)
+  // #endif
 }
 
 type UiFontKey = 'calligraphy' | 'songti' | 'system'
@@ -600,7 +616,9 @@ function onResetShareCount() {
 function onSetUiFont(key: UiFontKey) {
   uiFont.value = key
   uni.setStorageSync('moyun_ui_font', key)
+  // #ifdef H5
   document.documentElement.setAttribute('data-ui-font', key)
+  // #endif
 }
 
 function onSelectFont(key: CalligraphyFont) {
@@ -626,7 +644,9 @@ onActivated(loadAll)
 </script>
 
 <style lang="scss">
+/* #ifdef H5 */
 @import '@fontsource/ma-shan-zheng';
+/* #endif */
 
 $color-vermilion: #c05040;
 $color-mountain: #7aa8c2;

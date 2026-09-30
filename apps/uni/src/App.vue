@@ -1,16 +1,21 @@
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from "@dcloudio/uni-app";
+// #ifdef H5
 import '@fontsource/ma-shan-zheng';
+// #endif
 
 onLaunch(() => {
   console.log("App Launch");
+  // #ifdef H5
   const uiFont = uni.getStorageSync('moyun_ui_font') || 'calligraphy'
   document.documentElement.setAttribute('data-ui-font', uiFont)
   const cursorStyle = uni.getStorageSync('moyun_cursor') || 'brush'
   document.documentElement.setAttribute('data-cursor', cursorStyle)
   initInkRipple()
+  // #endif
 });
 
+// #ifdef H5
 function initInkRipple() {
   document.addEventListener('click', (e: MouseEvent) => {
     const x = e.clientX
@@ -24,6 +29,7 @@ function initInkRipple() {
     setTimeout(cleanup, 2000)
   })
 }
+// #endif
 onShow(() => {
   console.log("App Show");
 });

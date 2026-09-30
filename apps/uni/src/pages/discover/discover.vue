@@ -174,7 +174,9 @@ onMounted(() => loadFeatured())
 </script>
 
 <style lang="scss">
+/* #ifdef H5 */
 @import '@fontsource/ma-shan-zheng';
+/* #endif */
 
 .calligraphy {
   font-family: var(--ui-font);

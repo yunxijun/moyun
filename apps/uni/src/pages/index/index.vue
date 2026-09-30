@@ -379,7 +379,9 @@ const scrollY = ref(0)
 const STICKY_TOP = 12 // 吸附到顶部时的偏移(px)
 
 function onScroll() {
+  // #ifdef H5
   scrollY.value = window.scrollY || document.documentElement.scrollTop
+  // #endif
 }
 
 const isMobile = ref(false)
@@ -418,6 +420,9 @@ function saveBookmarkPos() {
 }
 
 function onBookmarkDragStart(e: MouseEvent | TouchEvent) {
+  // #ifndef H5
+  return
+  // #endif
   // 手机端不允许拖拽（空间太小）
   if (window.innerWidth <= 768) return
   isDraggingBookmark = true
@@ -518,21 +523,31 @@ function animateBookmark() {
 }
 
 function checkMobile() {
+  // #ifdef H5
   isMobile.value = window.innerWidth <= 768
+  // #endif
+  // #ifdef MP-WEIXIN
+  const sysInfo = uni.getSystemInfoSync()
+  isMobile.value = sysInfo.windowWidth <= 768
+  // #endif
 }
 
 onMounted(() => {
   checkMobile()
+  // #ifdef H5
   window.addEventListener('resize', checkMobile)
   loadBookmarkPos()
   bookmarkRafId = requestAnimationFrame(animateBookmark)
   window.addEventListener('scroll', onScroll, { passive: true })
+  // #endif
 })
 
 onUnmounted(() => {
+  // #ifdef H5
   cancelAnimationFrame(bookmarkRafId)
   window.removeEventListener('scroll', onScroll)
   window.removeEventListener('resize', checkMobile)
+  // #endif
 })
 
 // ========== 访客 ID ==========
@@ -880,7 +895,9 @@ function onCustomGenerate() {
 </script>
 
 <style lang="scss">
+/* #ifdef H5 */
 @import '@fontsource/ma-shan-zheng';
+/* #endif */
 
 // ── 色彩变量 ──
 $paper: var(--c-paper);
