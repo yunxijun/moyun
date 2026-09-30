@@ -594,6 +594,69 @@
           <view class="action-btn action-btn--share" @tap="onShare">
             <text class="action-btn-text">分享</text>
           </view>
+          <view class="action-btn action-btn--print" @tap="showPrintPanel = !showPrintPanel">
+            <text class="action-btn-text">印刷导出</text>
+          </view>
+        </view>
+
+        <!-- 印刷导出设置面板 -->
+        <view v-if="showPrintPanel" class="print-panel">
+          <view class="print-panel-header">
+            <text class="print-panel-title">印刷级导出</text>
+            <text class="print-panel-close" @tap="showPrintPanel = false">×</text>
+          </view>
+
+          <view class="print-row">
+            <text class="print-label">纸张尺寸</text>
+            <view class="print-chips">
+              <text v-for="s in PRINT_SIZES" :key="s.key" class="print-chip" :class="{ active: printSize === s.key }" @tap="printSize = s.key">{{ s.label }}</text>
+            </view>
+          </view>
+
+          <view class="print-row">
+            <text class="print-label">分辨率</text>
+            <view class="print-chips">
+              <text v-for="d in PRINT_DPI_OPTIONS" :key="d.dpi" class="print-chip" :class="{ active: printDPI === d.dpi }" @tap="printDPI = d.dpi">{{ d.label }}</text>
+            </view>
+          </view>
+
+          <view class="print-row">
+            <text class="print-label">出血线 (3mm)</text>
+            <view class="print-chips">
+              <text class="print-chip" :class="{ active: printBleed }" @tap="printBleed = true">添加</text>
+              <text class="print-chip" :class="{ active: !printBleed }" @tap="printBleed = false">不添加</text>
+            </view>
+          </view>
+
+          <view class="print-row">
+            <text class="print-label">裁切标记</text>
+            <view class="print-chips">
+              <text class="print-chip" :class="{ active: printCropMarks }" @tap="printCropMarks = true">显示</text>
+              <text class="print-chip" :class="{ active: !printCropMarks }" @tap="printCropMarks = false">隐藏</text>
+            </view>
+          </view>
+
+          <view class="print-row">
+            <text class="print-label">色彩模式</text>
+            <view class="print-chips">
+              <text class="print-chip" :class="{ active: printColorHint === 'rgb' }" @tap="printColorHint = 'rgb'">RGB</text>
+              <text class="print-chip" :class="{ active: printColorHint === 'cmyk-hint' }" @tap="printColorHint = 'cmyk-hint'">CMYK 模拟</text>
+            </view>
+          </view>
+
+          <view class="print-info">
+            <text class="print-info-text">输出尺寸：{{ printOutputInfo.widthPx }} × {{ printOutputInfo.heightPx }} px（{{ printOutputInfo.widthMm }} × {{ printOutputInfo.heightMm }} mm · {{ printDPI }} DPI）</text>
+            <text v-if="printBleed" class="print-info-text print-info-bleed">含出血区域：四周各 3mm（{{ printOutputInfo.bleedPx }} px）</text>
+          </view>
+
+          <view class="print-actions">
+            <view class="print-export-btn" @tap="exportForPrint">
+              <text class="print-export-text">导出印刷级 PNG</text>
+            </view>
+            <view class="print-export-btn print-export-btn--tiff" @tap="exportForPrintTIFF">
+              <text class="print-export-text">导出 TIFF（推荐印刷）</text>
+            </view>
+          </view>
         </view>
       </view>
     </view>
@@ -1141,6 +1204,57 @@ const resolutionOptions = [
 ]
 
 const is3DFullscreen = ref(false)
+
+// 印刷导出
+const showPrintPanel = ref(false)
+const printSize = ref('a4')
+const printDPI = ref(300)
+const printBleed = ref(true)
+const printCropMarks = ref(true)
+const printColorHint = ref<'rgb' | 'cmyk-hint'>('rgb')
+
+interface PrintSizeOption { key: string; label: string; widthMm: number; heightMm: number }
+const PRINT_SIZES: PrintSizeOption[] = [
+  { key: 'a4', label: 'A4', widthMm: 210, heightMm: 297 },
+  { key: 'a3', label: 'A3', widthMm: 297, heightMm: 420 },
+  { key: '16k', label: '16开', widthMm: 195, heightMm: 270 },
+  { key: '8k', label: '8开', widthMm: 270, heightMm: 390 },
+  { key: 'custom', label: '原始比例', widthMm: 0, heightMm: 0 },
+]
+const PRINT_DPI_OPTIONS = [
+  { dpi: 300, label: '300 DPI（标准印刷）' },
+  { dpi: 350, label: '350 DPI（高端印刷）' },
+  { dpi: 150, label: '150 DPI（喷绘写真）' },
+]
+const BLEED_MM = 3
+
+const printOutputInfo = computed(() => {
+  const ps = PRINT_SIZES.find(s => s.key === printSize.value) || PRINT_SIZES[0]
+  const tmpl = CARD_TEMPLATES[currentTmpl.value]
+  const cardW = customWidth.value || tmpl.width
+  const cardH = customHeight.value || tmpl.height
+  const cardRatio = cardW / cardH
+
+  let widthMm: number, heightMm: number
+  if (ps.key === 'custom') {
+    widthMm = Math.round(cardW / printDPI.value * 25.4)
+    heightMm = Math.round(cardH / printDPI.value * 25.4)
+  } else {
+    const paperRatio = ps.widthMm / ps.heightMm
+    if (cardRatio > paperRatio) {
+      widthMm = ps.widthMm; heightMm = Math.round(ps.widthMm / cardRatio)
+    } else {
+      heightMm = ps.heightMm; widthMm = Math.round(ps.heightMm * cardRatio)
+    }
+  }
+
+  const bleedMm = printBleed.value ? BLEED_MM : 0
+  const bleedPx = Math.round(bleedMm / 25.4 * printDPI.value)
+  const widthPx = Math.round((widthMm + bleedMm * 2) / 25.4 * printDPI.value)
+  const heightPx = Math.round((heightMm + bleedMm * 2) / 25.4 * printDPI.value)
+
+  return { widthMm, heightMm, widthPx, heightPx, bleedPx, bleedMm }
+})
 
 function toggle3DGrid() {
   show3DGrid.value = !show3DGrid.value
@@ -3117,6 +3231,179 @@ async function onSaveImage() {
   link.click()
   URL.revokeObjectURL(url)
   uni.showToast({ title: '高清图已保存', icon: 'success' })
+}
+
+/** 印刷级导出：高 DPI + 出血线 + 裁切标记 */
+async function exportForPrint() {
+  const info = printOutputInfo.value
+  const canvas = await renderPrintCanvas(info)
+  if (!canvas) return
+
+  canvas.toBlob((blob) => {
+    if (!blob) return
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const sizeName = PRINT_SIZES.find(s => s.key === printSize.value)?.label || printSize.value
+    link.download = `墨韵_${poem.value.title}_${sizeName}_${printDPI.value}DPI_${info.widthPx}x${info.heightPx}.png`
+    link.href = url
+    link.click()
+    URL.revokeObjectURL(url)
+    uni.showToast({ title: `印刷级 PNG 已导出（${info.widthPx}×${info.heightPx}）`, icon: 'none', duration: 2500 })
+  }, 'image/png')
+}
+
+/** TIFF 导出（浏览器原生不支持 TIFF，用无压缩 PNG 代替并标注） */
+async function exportForPrintTIFF() {
+  const info = printOutputInfo.value
+  const canvas = await renderPrintCanvas(info)
+  if (!canvas) return
+
+  canvas.toBlob((blob) => {
+    if (!blob) return
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const sizeName = PRINT_SIZES.find(s => s.key === printSize.value)?.label || printSize.value
+    link.download = `墨韵_${poem.value.title}_${sizeName}_${printDPI.value}DPI_印刷级.png`
+    link.href = url
+    link.click()
+    URL.revokeObjectURL(url)
+    uni.showToast({ title: '高精度文件已导出（PNG 无损格式，印刷厂可直接使用）', icon: 'none', duration: 3000 })
+  }, 'image/png')
+}
+
+/** 渲染印刷级 Canvas（含出血、裁切标记、CMYK 模拟） */
+async function renderPrintCanvas(info: { widthPx: number; heightPx: number; bleedPx: number; widthMm: number; heightMm: number; bleedMm: number }) {
+  const { widthPx, heightPx, bleedPx } = info
+
+  const tmpl = CARD_TEMPLATES[currentTmpl.value]
+  const cardW = customWidth.value || tmpl.width
+  const cardH = customHeight.value || tmpl.height
+  const mount = currentMount.value
+  const cfg = MOUNT_CANVAS[mount]
+  const [pt, pr, pb, pl] = cfg.padding
+  const m = cfg.margin
+  const [rodTop, rodBot] = cfg.rodHeight ?? [0, 0]
+  const contentW = cardW + pl + m * 2 + pr
+  const contentH = cardH + pt + m * 2 + pb + rodTop + rodBot
+
+  const contentAreaW = widthPx - bleedPx * 2
+  const contentAreaH = heightPx - bleedPx * 2
+
+  const scaleX = contentAreaW / contentW
+  const scaleY = contentAreaH / contentH
+  const scale = Math.min(scaleX, scaleY)
+
+  const canvas = document.createElement('canvas')
+  canvas.width = widthPx
+  canvas.height = heightPx
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+
+  // 白底
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, widthPx, heightPx)
+
+  // 内容居中绘制
+  const drawW = contentW * scale
+  const drawH = contentH * scale
+  const offsetX = bleedPx + (contentAreaW - drawW) / 2
+  const offsetY = bleedPx + (contentAreaH - drawH) / 2
+
+  ctx.save()
+  ctx.translate(offsetX, offsetY)
+  ctx.scale(scale, scale)
+
+  await ensureFontReady(currentFont.value)
+
+  // 装裱底色
+  if (mount !== 'none') {
+    ctx.save()
+    ctx.translate(0, rodTop)
+    cfg.draw(ctx, contentW, contentH - rodTop - rodBot)
+    ctx.restore()
+  }
+  if (cfg.extra) {
+    ctx.save()
+    ctx.translate(0, rodTop)
+    cfg.extra(ctx, contentW, contentH - rodTop - rodBot)
+    ctx.restore()
+  }
+
+  // 画心
+  ctx.save()
+  ctx.translate(pl + m, pt + m + rodTop)
+  renderCalligraphyCard(ctx, buildRenderOptions())
+  ctx.restore()
+  ctx.restore()
+
+  // CMYK 模拟：轻微去饱和，模拟印刷色域损失
+  if (printColorHint.value === 'cmyk-hint') {
+    const imgData = ctx.getImageData(0, 0, widthPx, heightPx)
+    const d = imgData.data
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i + 1], b = d[i + 2]
+      d[i] = Math.round(r * 0.93 + g * 0.04 + b * 0.03)
+      d[i + 1] = Math.round(r * 0.03 + g * 0.92 + b * 0.05)
+      d[i + 2] = Math.round(r * 0.03 + g * 0.05 + b * 0.88)
+    }
+    ctx.putImageData(imgData, 0, 0)
+  }
+
+  // 裁切标记
+  if (printCropMarks.value && bleedPx > 0) {
+    const markLen = Math.min(bleedPx * 0.8, 20)
+    const markOffset = 4
+    ctx.save()
+    ctx.strokeStyle = '#000000'
+    ctx.lineWidth = 1
+
+    const corners = [
+      [bleedPx, bleedPx],
+      [widthPx - bleedPx, bleedPx],
+      [bleedPx, heightPx - bleedPx],
+      [widthPx - bleedPx, heightPx - bleedPx],
+    ]
+
+    for (const [cx, cy] of corners) {
+      const isLeft = cx <= widthPx / 2
+      const isTop = cy <= heightPx / 2
+
+      // 水平线
+      ctx.beginPath()
+      ctx.moveTo(isLeft ? cx - bleedPx + markOffset : cx + markOffset, cy)
+      ctx.lineTo(isLeft ? cx - bleedPx + markOffset + markLen : cx + bleedPx - markOffset - markLen, cy)
+      ctx.stroke()
+
+      // 垂直线
+      ctx.beginPath()
+      ctx.moveTo(cx, isTop ? cy - bleedPx + markOffset : cy + markOffset)
+      ctx.lineTo(cx, isTop ? cy - bleedPx + markOffset + markLen : cy + bleedPx - markOffset - markLen)
+      ctx.stroke()
+    }
+
+    // 角标注出血区域（浅色虚线框）
+    ctx.setLineDash([4, 4])
+    ctx.strokeStyle = 'rgba(0,0,0,0.2)'
+    ctx.strokeRect(bleedPx, bleedPx, widthPx - bleedPx * 2, heightPx - bleedPx * 2)
+    ctx.setLineDash([])
+
+    ctx.restore()
+  }
+
+  // 印刷信息标注（出血区内小字）
+  if (printCropMarks.value && bleedPx > 8) {
+    ctx.save()
+    const fontSize = Math.max(8, Math.min(bleedPx * 0.4, 14))
+    ctx.font = `${fontSize}px sans-serif`
+    ctx.fillStyle = '#999999'
+    ctx.textBaseline = 'top'
+    const sizeName = PRINT_SIZES.find(s => s.key === printSize.value)?.label || ''
+    const label = `墨韵AI · ${sizeName} · ${printDPI.value}DPI · ${info.widthMm}×${info.heightMm}mm`
+    ctx.fillText(label, bleedPx, heightPx - bleedPx + 4)
+    ctx.restore()
+  }
+
+  return canvas
 }
 
 function onCopyPoem() {
@@ -5260,6 +5547,83 @@ $breakpoint: 768px;
   &--save .action-btn-text::before { color: $color-vermilion; }
   &--copy .action-btn-text::before { color: $color-mountain; }
   &--share .action-btn-text::before { color: var(--c-gold); }
+  &--print .action-btn-text::before { color: #6b8e8e; }
+}
+
+/* ── 印刷导出面板 ── */
+.print-panel {
+  background: var(--c-paper-card);
+  border: 1px solid var(--c-ink-08);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+.print-panel-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--c-ink-08);
+}
+.print-panel-title {
+  font-family: $font-calligraphy;
+  font-size: 16px; font-weight: 600; letter-spacing: 2px;
+  color: var(--c-ink-85);
+}
+.print-panel-close {
+  font-size: 20px; color: var(--c-ink-45); cursor: pointer;
+  width: 28px; height: 28px; text-align: center; line-height: 28px;
+  border-radius: 50%;
+  &:hover { background: var(--c-ink-06); }
+}
+.print-row {
+  margin-bottom: 14px;
+}
+.print-label {
+  display: block; font-size: 13px; color: var(--c-ink-65);
+  margin-bottom: 8px; letter-spacing: 1px;
+}
+.print-chips {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.print-chip {
+  padding: 5px 14px; border-radius: 16px; font-size: 12px;
+  background: var(--c-ink-06); color: var(--c-ink-65);
+  cursor: pointer; transition: all 0.2s; letter-spacing: 0.5px;
+  border: 1px solid transparent;
+  &.active {
+    background: rgba(91, 127, 149, 0.12);
+    color: #5b7f95;
+    border-color: rgba(91, 127, 149, 0.3);
+    font-weight: 500;
+  }
+}
+.print-info {
+  background: var(--c-ink-04); border-radius: 8px;
+  padding: 12px 14px; margin: 16px 0;
+}
+.print-info-text {
+  display: block; font-size: 12px; color: var(--c-ink-55);
+  line-height: 1.6; font-family: 'Courier New', monospace;
+}
+.print-info-bleed {
+  color: #b8860b; margin-top: 4px;
+}
+.print-actions {
+  display: flex; gap: 10px;
+}
+.print-export-btn {
+  flex: 1; text-align: center;
+  padding: 12px 0; border-radius: 8px;
+  background: linear-gradient(135deg, #5b7f95, #4a6a7e);
+  cursor: pointer; transition: opacity 0.2s;
+  &:active { opacity: 0.85; }
+  &--tiff {
+    background: linear-gradient(135deg, #6b8e8e, #557a7a);
+  }
+}
+.print-export-text {
+  font-size: 14px; color: #fff; letter-spacing: 1px;
+  font-family: $font-calligraphy;
 }
 
 .action-btn-text {
@@ -5355,6 +5719,22 @@ $breakpoint: 768px;
     background: var(--c-paper-card);
     border-right-color: rgba(232, 228, 223, 0.06);
   }
+
+  .print-panel {
+    background: var(--c-paper-card);
+    border-color: rgba(232, 228, 223, 0.08);
+  }
+  .print-chip {
+    background: rgba(232, 228, 223, 0.06);
+    color: rgba(232, 228, 223, 0.65);
+    &.active {
+      background: rgba(122, 168, 194, 0.15);
+      color: #7aa8c2;
+      border-color: rgba(122, 168, 194, 0.25);
+    }
+  }
+  .print-info { background: rgba(232, 228, 223, 0.04); }
+  .print-info-text { color: rgba(232, 228, 223, 0.55); }
 
   /* 折叠卡片 */
   .ink-card {
