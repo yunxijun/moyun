@@ -1,22 +1,41 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
   <defs>
-    <radialGradient id="bg" cx="50%" cy="40%" r="60%">
+    <radialGradient id="bg" cx="50%" cy="35%" r="65%">
       <stop offset="0%" stop-color="#fdfbf6"/>
-      <stop offset="100%" stop-color="#f0e8d8"/>
+      <stop offset="100%" stop-color="#ebe3d3"/>
     </radialGradient>
-    <radialGradient id="ink" cx="50%" cy="50%" r="50%">
+    <linearGradient id="brush" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8b6b3e"/>
+      <stop offset="50%" stop-color="#c4a35a"/>
+      <stop offset="100%" stop-color="#6b4c30"/>
+    </linearGradient>
+    <linearGradient id="tip" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#2a2a3e"/>
-      <stop offset="100%" stop-color="#1a1a2e"/>
-    </radialGradient>
-    <filter id="shadow">
-      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#1a1a2e" flood-opacity="0.15"/>
-    </filter>
+      <stop offset="100%" stop-color="#0e0e18"/>
+    </linearGradient>
   </defs>
-  <rect width="192" height="192" rx="38" fill="url(#bg)"/>
-  <circle cx="96" cy="88" r="62" fill="#1a1a2e" opacity="0.04"/>
-  <circle cx="80" cy="78" r="40" fill="#5b7f95" opacity="0.03"/>
-  <text x="96" y="118" text-anchor="middle" font-family="STKaiti,KaiTi,Songti SC,serif" font-size="96" fill="url(#ink)" filter="url(#shadow)" font-weight="900">&#22696;</text>
-  <rect x="122" y="124" width="32" height="32" rx="4" fill="#c73e1d" opacity="0.85"/>
-  <text x="138" y="147" text-anchor="middle" font-family="STKaiti,KaiTi,serif" font-size="18" fill="#faf8f3" font-weight="700">&#38901;</text>
-  <line x1="46" y1="164" x2="146" y2="164" stroke="#c73e1d" stroke-width="2" opacity="0.35" stroke-linecap="round"/>
+  <!-- Background -->
+  <rect width="192" height="192" rx="42" fill="url(#bg)"/>
+  <!-- Ink splash (decorative) -->
+  <ellipse cx="108" cy="148" rx="36" ry="8" fill="#1a1a2e" opacity="0.06"/>
+  <circle cx="72" cy="140" r="14" fill="#1a1a2e" opacity="0.04"/>
+  <circle cx="130" cy="135" r="8" fill="#5b7f95" opacity="0.05"/>
+  <!-- Brush handle -->
+  <rect x="86" y="16" width="20" height="80" rx="5" fill="url(#brush)" stroke="#a0813c" stroke-width="1"/>
+  <!-- Brush bands -->
+  <rect x="86" y="36" width="20" height="3" rx="1" fill="#a0813c" opacity="0.7"/>
+  <rect x="86" y="56" width="20" height="3" rx="1" fill="#a0813c" opacity="0.7"/>
+  <!-- Brush ferrule -->
+  <rect x="83" y="93" width="26" height="10" rx="3" fill="#6b4c30"/>
+  <!-- Brush tip -->
+  <path d="M84 103 Q88 140, 96 162 Q104 140, 108 103 Z" fill="url(#tip)" opacity="0.9"/>
+  <!-- Ink drop from tip -->
+  <ellipse cx="96" cy="164" rx="5" ry="4" fill="#1a1a2e" opacity="0.7"/>
+  <!-- Ink stroke (calligraphy mark) -->
+  <path d="M50 130 Q65 118, 96 125 Q127 132, 145 122" stroke="#1a1a2e" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.15"/>
+  <!-- Red seal stamp -->
+  <rect x="130" y="140" width="30" height="30" rx="4" fill="#c73e1d" opacity="0.8"/>
+  <line x1="137" y1="148" x2="153" y2="148" stroke="#faf8f3" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="137" y1="155" x2="153" y2="155" stroke="#faf8f3" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="137" y1="162" x2="148" y2="162" stroke="#faf8f3" stroke-width="1.2" stroke-linecap="round"/>
 </svg>
