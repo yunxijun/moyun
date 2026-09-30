@@ -1,22 +1,14 @@
 [build]
-  command = "pnpm install && pnpm build:h5"
+  command = "pnpm install && node scripts/build-functions.mjs && pnpm build:h5"
   publish = "apps/uni/dist/build/h5"
 
 [build.environment]
   NODE_VERSION = "22"
 
 [functions]
-  directory = "netlify/functions"
-  node_bundler = "esbuild"
-  included_files = ["server/src/**", "packages/core/src/**"]
+  directory = "netlify/functions-serve"
 
-# API 路由 → Serverless Function
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
-  status = 200
-
-# SPA 路由：其余路径回退到 index.html
+# SPA 路由：非 API 路径回退到 index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"

@@ -4,6 +4,7 @@ node_modules/
 
 # Build outputs
 dist/
+netlify/functions-serve/
 .output/
 .nuxt/
 .vercel/

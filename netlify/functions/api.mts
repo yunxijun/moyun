@@ -1,9 +1,8 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import type { Config } from '@netlify/functions'
-import { poemRoutes } from '../../server/src/routes/poem.js'
-import { calligraphyRoutes } from '../../server/src/routes/calligraphy.js'
-import { userRoutes } from '../../server/src/routes/user.js'
+import { poemRoutes } from '../../server/src/routes/poem'
+import { calligraphyRoutes } from '../../server/src/routes/calligraphy'
+import { userRoutes } from '../../server/src/routes/user'
 
 const app = new Hono()
 
@@ -28,6 +27,6 @@ export default async (request: Request) => {
   return app.fetch(request)
 }
 
-export const config: Config = {
+export const config = {
   path: ['/api', '/api/*'],
 }
