@@ -12,10 +12,42 @@ onLaunch(() => {
   const cursorStyle = uni.getStorageSync('moyun_cursor') || 'brush'
   document.documentElement.setAttribute('data-cursor', cursorStyle)
   initInkRipple()
+  registerPWA()
   // #endif
 });
 
 // #ifdef H5
+function registerPWA() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/sw.js').then(() => {
+      console.log('[PWA] Service Worker registered')
+    }).catch((err) => {
+      console.log('[PWA] SW registration failed:', err)
+    })
+  }
+  // 添加 manifest link
+  if (!document.querySelector('link[rel="manifest"]')) {
+    const link = document.createElement('link')
+    link.rel = 'manifest'
+    link.href = '/static/manifest.json'
+    document.head.appendChild(link)
+  }
+  // 添加 theme-color meta
+  if (!document.querySelector('meta[name="theme-color"]')) {
+    const meta = document.createElement('meta')
+    meta.name = 'theme-color'
+    meta.content = '#1a1a2e'
+    document.head.appendChild(meta)
+  }
+  // apple-touch-icon
+  if (!document.querySelector('link[rel="apple-touch-icon"]')) {
+    const link = document.createElement('link')
+    link.rel = 'apple-touch-icon'
+    link.href = '/static/icon-192.svg'
+    document.head.appendChild(link)
+  }
+}
+
 function initInkRipple() {
   document.addEventListener('click', (e: MouseEvent) => {
     const x = e.clientX
