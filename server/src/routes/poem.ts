@@ -5,7 +5,7 @@ import { buildPoemPrompt, buildImagePoemPrompt, buildIdentifyPrompt } from '@moy
 import { callLLM, callLLMStream, callVisionLLM } from '../lib/llm'
 import { mockGeneratePoem, mockPoemFromImage } from '../lib/mock'
 import { checkQuota, consumeQuota, getQuotaInfo } from '../lib/quota'
-import { savePoem } from '../lib/history'
+import { savePoem, getPoemById } from '../lib/history'
 
 const USE_MOCK = process.env.USE_MOCK === 'true'
 
@@ -215,6 +215,16 @@ poemRoutes.post('/identify', async (c) => {
       error: { code: 'IDENTIFY_FAILED', message: '诗词识别失败，请检查输入内容' },
     }, 500)
   }
+})
+
+/** GET /api/poem/detail/:id — 按 ID 获取单条诗词 */
+poemRoutes.get('/detail/:id', async (c) => {
+  const id = c.req.param('id')
+  const record = getPoemById(id)
+  if (!record) {
+    return c.json({ success: false, error: '诗词不存在或已过期' }, 404)
+  }
+  return c.json({ success: true, data: record })
 })
 
 /** GET /api/poem/quota — 查询当前剩余次数 */

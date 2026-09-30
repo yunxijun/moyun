@@ -86,6 +86,16 @@ export function savePoem(userId: string, poem: PoemResult): PoemRecord {
   return record
 }
 
+/** 按 ID 查询单条诗词（遍历所有用户） */
+export function getPoemById(id: string): PoemRecord | null {
+  for (const list of historyMap.values()) {
+    const found = list.find(r => r.id === id)
+    if (found) return found
+  }
+  const found = featuredPoems.find(r => r.id === id)
+  return found || null
+}
+
 /** 查询用户历史 */
 export function getUserHistory(userId: string, page = 1, pageSize = 20): {
   items: PoemRecord[]

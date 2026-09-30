@@ -553,13 +553,13 @@ function onMenuTap(key: string) {
 /* ── 查看诗词 ── */
 function onViewPoem(item: PoemRecord) {
   uni.setStorageSync('moyun_nav_poem', JSON.stringify(item.poem))
-  // 传递排版设置（收藏项可能含 settings）
   const extra: any = {}
   if ((item as any).font) extra.font = (item as any).font
   if ((item as any).mount) extra.mount = (item as any).mount
   if ((item as any).settings) extra.settings = (item as any).settings
   uni.setStorageSync('moyun_nav_settings', JSON.stringify(extra))
-  uni.navigateTo({ url: '/pages/result/result?from=storage' })
+  const source = activeTab.value === 'favorite' ? 'favorite' : 'history'
+  uni.navigateTo({ url: `/pages/result/result?from=${source}&id=${item.id}` })
 }
 
 /* ── 收藏管理 ── */

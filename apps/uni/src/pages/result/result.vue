@@ -740,6 +740,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import qrGenerator from 'qrcode-generator'
+import { API_BASE_URL } from '../../utils/api'
 import type { PoemResult, CalligraphyFont, CardBackground, CardTemplate, Calligrapher, CalligraphyScript } from '@moyun/core'
 import {
   CALLIGRAPHY_FONTS,
@@ -3500,16 +3501,42 @@ onMounted(async () => {
   const pages = getCurrentPages()
   const currentPage = pages[pages.length - 1] as any
   const query = currentPage?.$page?.options || currentPage?.options || {}
-  if (query?.from === 'storage') {
-    // 从 localStorage 读取（推荐方式，避免超长 URL）
+  const fromSource = query?.from
+  const poemId = query?.id
+
+  if (fromSource === 'history' || fromSource === 'favorite' || fromSource === 'storage') {
+    // 优先从 localStorage 读取（页面内导航传递的数据）
+    let loaded = false
     try {
       const poemRaw = uni.getStorageSync('moyun_nav_poem')
-      if (poemRaw) poem.value = JSON.parse(poemRaw)
+      if (poemRaw) {
+        poem.value = JSON.parse(poemRaw)
+        loaded = true
+      }
       const inputRaw = uni.getStorageSync('moyun_nav_input')
       if (inputRaw) userInput.value = JSON.parse(inputRaw)
     } catch (e) {
       console.error('解析诗词数据失败', e)
     }
+
+    // localStorage 没数据时（如直接打开链接/刷新），按 ID 从服务端或本地收藏加载
+    if (!loaded && poemId) {
+      if (fromSource === 'favorite') {
+        try {
+          const favs = JSON.parse(uni.getStorageSync('moyun_favorites') || '[]')
+          const found = favs.find((f: any) => f.id === poemId)
+          if (found?.poem) { poem.value = found.poem; loaded = true }
+        } catch (_) {}
+      }
+      if (!loaded) {
+        try {
+          const resp = await fetch(`${API_BASE_URL}/api/poem/detail/${poemId}`)
+          const data = await resp.json()
+          if (data.success && data.data?.poem) { poem.value = data.data.poem; loaded = true }
+        } catch (e) { console.error('从服务端加载诗词失败', e) }
+      }
+    }
+
     // 恢复排版设置（从收藏进入时）
     try {
       const settingsRaw = uni.getStorageSync('moyun_nav_settings')
