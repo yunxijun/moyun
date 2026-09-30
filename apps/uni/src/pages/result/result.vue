@@ -3510,8 +3510,32 @@ onMounted(async () => {
     } catch (e) {
       console.error('解析诗词数据失败', e)
     }
+    // 恢复排版设置（从收藏进入时）
+    try {
+      const settingsRaw = uni.getStorageSync('moyun_nav_settings')
+      if (settingsRaw) {
+        const saved = JSON.parse(settingsRaw)
+        if (saved.font) currentFont.value = saved.font
+        if (saved.mount) currentMount.value = saved.mount
+        if (saved.settings) {
+          const s = saved.settings
+          if (s.bg) currentBg.value = s.bg
+          if (s.border) currentBorder.value = s.border
+          if (s.texture) currentTexture.value = s.texture
+          if (s.textureType) currentTextureType.value = s.textureType
+          if (s.textureStrength != null) textureStrength.value = s.textureStrength
+          if (s.fontScale) fontScale.value = s.fontScale
+          if (s.stampText) stampText.value = s.stampText
+          if (s.stampSize) stampSizeVal.value = s.stampSize
+          if (s.stampShape) stampShape.value = s.stampShape
+          if (s.stampPosition) stampPosition.value = s.stampPosition
+          if (s.stampFont) stampFontKey.value = s.stampFont
+        }
+      }
+    } catch (_) {}
     uni.removeStorageSync('moyun_nav_poem')
     uni.removeStorageSync('moyun_nav_input')
+    uni.removeStorageSync('moyun_nav_settings')
   } else if (query?.poem) {
     // 兼容旧的 URL 参数方式
     try {
@@ -3697,6 +3721,19 @@ function onToggleFavorite() {
       createdAt: new Date().toISOString(),
       font: currentFont.value,
       mount: currentMount.value,
+      settings: {
+        bg: currentBg.value,
+        border: currentBorder.value,
+        texture: currentTexture.value,
+        textureType: currentTextureType.value,
+        textureStrength: textureStrength.value,
+        fontScale: fontScale.value,
+        stampText: stampText.value,
+        stampSize: stampSizeVal.value,
+        stampShape: stampShape.value,
+        stampPosition: stampPosition.value,
+        stampFont: stampFontKey.value,
+      },
     })
     if (favs.length > 200) favs.pop()
     isFavorited.value = true
