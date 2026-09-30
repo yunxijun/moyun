@@ -1467,11 +1467,16 @@ async function renderPoster(): Promise<HTMLCanvasElement | null> {
     return lines
   }
 
-  // 预计算各区域行数（两句合一行，逗号分隔）
+  // 预计算各区域行数（两句合一行）
   const rawLines = p.content.map(l => l.trim()).filter(Boolean)
   const poemLines: string[] = []
   for (let i = 0; i < rawLines.length; i += 2) {
-    poemLines.push(i + 1 < rawLines.length ? `${rawLines[i]}，${rawLines[i + 1]}` : rawLines[i])
+    if (i + 1 < rawLines.length) {
+      const a = rawLines[i].replace(/[，,、；;。！？\s]+$/, '')
+      poemLines.push(`${a}，${rawLines[i + 1]}`)
+    } else {
+      poemLines.push(rawLines[i])
+    }
   }
   const transLines = wrapText(p.translation || '', transSize, textAreaW)
 
