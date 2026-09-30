@@ -3535,14 +3535,22 @@ watch([showSharePanel, posterTemplate], async () => {
     }
     await nextTick()
     updatePosterPreview()
-    // 手机端：滚动到分享面板
-    if (isMobileResult.value) {
-      await nextTick()
-      setTimeout(() => {
-        const el = document.querySelector('.share-panel')
-        el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }, 100)
-    }
+    // 滚动到分享面板
+    await nextTick()
+    setTimeout(() => {
+      const el = document.querySelector('.share-panel')
+      if (!el) return
+      if (isMobileResult.value) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      } else {
+        // PC端：右栏内部滚动到分享面板
+        const panelRight = el.closest('.panel-right') as HTMLElement
+        if (panelRight) {
+          const offset = el.offsetTop - panelRight.offsetTop
+          panelRight.scrollTo({ top: offset, behavior: 'smooth' })
+        }
+      }
+    }, 100)
   }
 })
 
