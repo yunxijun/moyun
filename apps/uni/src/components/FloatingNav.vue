@@ -104,7 +104,9 @@ function navigate(path: string) {
   padding: 16rpx;
   transition: none !important;
 
+  /* #ifdef H5 */
   * { transition-property: opacity, transform, background, border-color, box-shadow, color !important; }
+  /* #endif */
 }
 
 .nav-seal {
