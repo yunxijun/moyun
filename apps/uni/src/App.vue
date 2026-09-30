@@ -44,6 +44,7 @@ onHide(() => {
    设计理念：水墨留白·诗意栖居
    ============================ */
 
+/* #ifdef H5 */
 /* -- 自定义鼠标：毛笔（可通过 data-cursor 切换） -- */
 :root, [data-cursor="brush"] {
   --cursor-default: url('/static/cursor-brush.svg') 3 3, auto;
@@ -65,6 +66,7 @@ a, button, [class*="btn"], [class*="seal"], [class*="tag"], [class*="menu-item"]
 [class*="recommend"], [class*="daily"], .clickable {
   cursor: var(--cursor-pointer);
 }
+/* #endif */
 
 /* -- 全局色彩变量（浅色模式） -- */
 :root, [data-theme="light"] {
@@ -262,6 +264,7 @@ view, text, image, button, scroll-view {
 .delay-4 { animation-delay: 0.4s; }
 .delay-5 { animation-delay: 0.5s; }
 
+/* #ifdef H5 */
 /* -- 表单元素重置（去除系统默认样式） -- */
 input, textarea, select, button {
   border: none;
@@ -281,7 +284,9 @@ input:focus, textarea:focus, select:focus {
   outline: none;
   box-shadow: none;
 }
+/* #endif */
 
+/* #ifdef H5 */
 /* uni-app H5 textarea 底部黑线 */
 uni-textarea .uni-textarea-textarea,
 .uni-textarea-textarea {
@@ -313,7 +318,9 @@ uni-textarea .uni-textarea-textarea,
   background: rgba(199, 62, 29, 0.15);
   color: var(--c-ink);
 }
+/* #endif */
 
+/* #ifdef H5 */
 /* -- 水滴涟漪效果 -- */
 .ink-ripple-ring {
   position: fixed;
@@ -350,4 +357,5 @@ uni-textarea .uni-textarea-textarea,
 [data-theme="dark"] .ink-ripple-ring {
   border-color: rgba(122, 168, 194, 0.35);
 }
+/* #endif */
 </style>
