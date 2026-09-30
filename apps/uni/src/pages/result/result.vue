@@ -1575,20 +1575,20 @@ async function renderPoster(): Promise<HTMLCanvasElement | null> {
   // 标题（如果有头像，画在标题左侧）
   const posterAuthorOn = uni.getStorageSync('moyun_poster_author') !== 'false'
   const authorAvatar = posterAuthorOn ? (uni.getStorageSync('moyun_avatar') || '') : ''
-  const avatarSize = Math.round(titleSize * 1.35)
+  const avatarSize = titleSize
   let titleX = pad
 
   if (authorAvatar) {
     try {
       const avImg = await loadImage(authorAvatar)
-      const avY = curY + Math.round((titleSize - avatarSize) / 2) + Math.round(avatarSize * 0.15)
+      const avY = curY
       ctx.save()
       ctx.beginPath()
       ctx.arc(pad + avatarSize / 2, avY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2)
       ctx.clip()
       ctx.drawImage(avImg, pad, avY, avatarSize, avatarSize)
       ctx.restore()
-      titleX = pad + avatarSize + Math.round(10 * unit)
+      titleX = pad + avatarSize + Math.round(8 * unit)
     } catch (_) {}
   }
 
