@@ -1,1 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><defs><radialGradient id="bg2" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#fdfbf6"/><stop offset="100%" stop-color="#f0e8d8"/></radialGradient><radialGradient id="ink2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#2a2a3e"/><stop offset="100%" stop-color="#1a1a2e"/></radialGradient><filter id="shadow2"><feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#1a1a2e" flood-opacity="0.15"/></filter><filter id="seal2"><feDropShadow dx="1" dy="1" stdDeviation="2" flood-color="#8b2010" flood-opacity="0.3"/></filter></defs><rect width="512" height="512" rx="96" fill="url(#bg2)"/><circle cx="256" cy="230" r="170" fill="#1a1a2e" opacity="0.035"/><circle cx="210" cy="200" r="110" fill="#5b7f95" opacity="0.025"/><text x="256" y="310" text-anchor="middle" font-family="STKaiti,KaiTi,Songti SC,serif" font-size="256" fill="url(#ink2)" filter="url(#shadow2)" font-weight="900">墨</text><g filter="url(#seal2)"><rect x="326" y="326" width="80" height="80" rx="8" fill="#c73e1d" opacity="0.88"/><text x="366" y="380" text-anchor="middle" font-family="STKaiti,KaiTi,serif" font-size="46" fill="#faf8f3" font-weight="700">韵</text></g><text x="256" y="445" text-anchor="middle" font-family="STKaiti,KaiTi,Songti SC,serif" font-size="36" fill="#5b7f95" letter-spacing="12" opacity="0.6">一念成诗</text><line x1="120" y1="462" x2="392" y2="462" stroke="#c73e1d" stroke-width="2.5" opacity="0.25" stroke-linecap="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg2" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#fdfbf6"/>
+      <stop offset="100%" stop-color="#f0e8d8"/>
+    </radialGradient>
+    <radialGradient id="ink2" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2a2a3e"/>
+      <stop offset="100%" stop-color="#1a1a2e"/>
+    </radialGradient>
+    <filter id="shadow2">
+      <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#1a1a2e" flood-opacity="0.15"/>
+    </filter>
+    <filter id="seal2">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-color="#8b2010" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg2)"/>
+  <circle cx="256" cy="230" r="170" fill="#1a1a2e" opacity="0.035"/>
+  <circle cx="210" cy="200" r="110" fill="#5b7f95" opacity="0.025"/>
+  <text x="256" y="310" text-anchor="middle" font-family="STKaiti,KaiTi,Songti SC,serif" font-size="256" fill="url(#ink2)" filter="url(#shadow2)" font-weight="900">&#22696;</text>
+  <g filter="url(#seal2)">
+    <rect x="326" y="326" width="80" height="80" rx="8" fill="#c73e1d" opacity="0.88"/>
+    <text x="366" y="380" text-anchor="middle" font-family="STKaiti,KaiTi,serif" font-size="46" fill="#faf8f3" font-weight="700">&#38901;</text>
+  </g>
+  <text x="256" y="445" text-anchor="middle" font-family="STKaiti,KaiTi,Songti SC,serif" font-size="36" fill="#5b7f95" letter-spacing="12" opacity="0.6">&#19968;&#24565;&#25104;&#35799;</text>
+  <line x1="120" y1="462" x2="392" y2="462" stroke="#c73e1d" stroke-width="2.5" opacity="0.25" stroke-linecap="round"/>
+</svg>

@@ -12,16 +12,11 @@
       <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#1a1a2e" flood-opacity="0.15"/>
     </filter>
   </defs>
-  <!-- ?????????? -->
   <rect width="192" height="192" rx="38" fill="url(#bg)"/>
-  <!-- ?????? -->
   <circle cx="96" cy="88" r="62" fill="#1a1a2e" opacity="0.04"/>
   <circle cx="80" cy="78" r="40" fill="#5b7f95" opacity="0.03"/>
-  <!-- ???? -->
-  <text x="96" y="118" text-anchor="middle" font-family="'STKaiti','KaiTi','Songti SC',serif" font-size="96" fill="url(#ink)" filter="url(#shadow)" font-weight="900">?</text>
-  <!-- ???? -->
+  <text x="96" y="118" text-anchor="middle" font-family="STKaiti,KaiTi,Songti SC,serif" font-size="96" fill="url(#ink)" filter="url(#shadow)" font-weight="900">&#22696;</text>
   <rect x="122" y="124" width="32" height="32" rx="4" fill="#c73e1d" opacity="0.85"/>
-  <text x="138" y="147" text-anchor="middle" font-family="'STKaiti','KaiTi',serif" font-size="18" fill="#faf8f3" font-weight="700">?</text>
-  <!-- ????? -->
+  <text x="138" y="147" text-anchor="middle" font-family="STKaiti,KaiTi,serif" font-size="18" fill="#faf8f3" font-weight="700">&#38901;</text>
   <line x1="46" y1="164" x2="146" y2="164" stroke="#c73e1d" stroke-width="2" opacity="0.35" stroke-linecap="round"/>
 </svg>
