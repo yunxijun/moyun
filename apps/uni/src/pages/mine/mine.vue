@@ -8,8 +8,10 @@
       <view class="mist" />
 
       <view class="profile-header">
-        <view class="avatar calligraphy">
-          <text>墨</text>
+        <view class="avatar calligraphy" @tap="onPickAvatar">
+          <image v-if="avatarUrl" :src="avatarUrl" class="avatar-img" mode="aspectFill" />
+          <text v-else>墨</text>
+          <view class="avatar-edit-hint">换</view>
         </view>
         <text class="nickname">{{ profile.nickname || '墨客' }}</text>
         <text class="membership">{{ profile.membership === 'free' ? '免费用户' : 'VIP会员' }}</text>
@@ -221,6 +223,21 @@
           </view>
         </view>
 
+        <!-- 头像 -->
+        <view class="setting-item">
+          <view class="setting-label">
+            <text class="setting-name">头像</text>
+            <text class="setting-desc">点击更换</text>
+          </view>
+          <view class="setting-control setting-avatar-ctl">
+            <view class="setting-avatar-preview" @tap="onPickAvatar">
+              <image v-if="avatarUrl" :src="avatarUrl" class="setting-avatar-img" mode="aspectFill" />
+              <text v-else class="setting-avatar-placeholder">墨</text>
+            </view>
+            <text v-if="avatarUrl" class="setting-btn setting-btn--sm" @tap="removeAvatar">移除</text>
+          </view>
+        </view>
+
         <!-- 昵称 -->
         <view class="setting-item">
           <view class="setting-label">
@@ -237,6 +254,19 @@
               @confirm="saveNickname"
             />
             <text class="setting-save" @tap="saveNickname">保存</text>
+          </view>
+        </view>
+
+        <!-- 海报署名 -->
+        <view class="setting-item">
+          <view class="setting-label">
+            <text class="setting-name">海报署名</text>
+            <text class="setting-desc">在分享海报底部展示头像和笔名</text>
+          </view>
+          <view class="setting-control">
+            <view class="setting-toggle" :class="{ on: showAuthorInPoster }" @tap="togglePosterAuthor">
+              <view class="setting-toggle-dot" />
+            </view>
           </view>
         </view>
 
@@ -361,6 +391,8 @@ const FAVORITES_KEY = 'moyun_favorites'
 const SHARE_COUNT_KEY = 'moyun_share_count'
 const NICKNAME_KEY = 'moyun_nickname'
 const DEFAULT_FONT_KEY = 'moyun_default_font'
+const AVATAR_KEY = 'moyun_avatar'
+const POSTER_AUTHOR_KEY = 'moyun_poster_author'
 
 const profile = ref<any>({})
 const history = ref<PoemRecord[]>([])
@@ -368,6 +400,53 @@ const favorites = ref<PoemRecord[]>([])
 const shareCount = ref(0)
 const activeTab = ref('history')
 const editingNickname = ref('')
+const avatarUrl = ref(uni.getStorageSync(AVATAR_KEY) || '')
+const showAuthorInPoster = ref(uni.getStorageSync(POSTER_AUTHOR_KEY) !== 'false')
+
+function onPickAvatar() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = () => {
+    const file = input.files?.[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) {
+      uni.showToast({ title: '图片不超过 2MB', icon: 'none' })
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      // 裁切为正方形并压缩
+      const img = new Image()
+      img.onload = () => {
+        const size = Math.min(img.width, img.height, 400)
+        const c = document.createElement('canvas')
+        c.width = size; c.height = size
+        const ctx = c.getContext('2d')!
+        const sx = (img.width - size) / 2, sy = (img.height - size) / 2
+        ctx.drawImage(img, sx, sy, size, size, 0, 0, size, size)
+        const dataUrl = c.toDataURL('image/jpeg', 0.85)
+        avatarUrl.value = dataUrl
+        uni.setStorageSync(AVATAR_KEY, dataUrl)
+        uni.showToast({ title: '头像已更新', icon: 'success' })
+      }
+      img.src = reader.result as string
+    }
+    reader.readAsDataURL(file)
+  }
+  input.click()
+}
+
+function removeAvatar() {
+  avatarUrl.value = ''
+  uni.removeStorageSync(AVATAR_KEY)
+  uni.showToast({ title: '头像已移除', icon: 'none' })
+}
+
+function togglePosterAuthor() {
+  showAuthorInPoster.value = !showAuthorInPoster.value
+  uni.setStorageSync(POSTER_AUTHOR_KEY, showAuthorInPoster.value ? 'true' : 'false')
+}
 const defaultFont = ref<CalligraphyFont>((uni.getStorageSync(DEFAULT_FONT_KEY) as CalligraphyFont) || 'MaShanZheng')
 const showFontPicker = ref(false)
 const fontGroups = getFontsByScript()
@@ -585,7 +664,50 @@ $color-gold: #b8963e;
   width: 128rpx; height: 128rpx; border-radius: 50%;
   background: var(--c-paper-card); display: flex; align-items: center; justify-content: center;
   box-shadow: var(--shadow-md); margin-bottom: 20rpx;
+  position: relative; overflow: hidden; cursor: pointer;
   text { font-size: 56rpx; color: var(--c-ink); line-height: 1; }
+}
+.avatar-img {
+  width: 100%; height: 100%; border-radius: 50%;
+}
+.avatar-edit-hint {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  text-align: center; font-size: 18rpx; color: #fff;
+  background: rgba(0,0,0,0.45); padding: 2rpx 0;
+  opacity: 0; transition: opacity 0.2s;
+}
+.avatar:hover .avatar-edit-hint,
+.avatar:active .avatar-edit-hint { opacity: 1; }
+
+.setting-avatar-ctl {
+  display: flex; align-items: center; gap: 12px;
+}
+.setting-avatar-preview {
+  width: 48px; height: 48px; border-radius: 50%;
+  overflow: hidden; cursor: pointer;
+  background: var(--c-ink-06);
+  display: flex; align-items: center; justify-content: center;
+}
+.setting-avatar-img {
+  width: 48px; height: 48px;
+}
+.setting-avatar-placeholder {
+  font-size: 24px; color: var(--c-ink-35);
+}
+.setting-btn--sm {
+  font-size: 12px !important; padding: 4px 10px !important;
+}
+.setting-toggle {
+  width: 44px; height: 24px; border-radius: 12px;
+  background: var(--c-ink-12); cursor: pointer;
+  position: relative; transition: background 0.3s;
+  &.on { background: #5b7f95; }
+}
+.setting-toggle-dot {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; position: absolute; top: 2px; left: 2px;
+  transition: transform 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  .setting-toggle.on & { transform: translateX(20px); }
 }
 .nickname {
   font-size: 36rpx; font-weight: 600; color: var(--c-paper);
