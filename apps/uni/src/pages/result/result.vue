@@ -591,7 +591,7 @@
           <view class="action-btn action-btn--copy" @tap="onCopyPoem">
             <text class="action-btn-text">复制诗词</text>
           </view>
-          <view class="action-btn action-btn--share" @tap="onShare">
+          <view class="action-btn action-btn--share" @tap="showSharePanel = !showSharePanel">
             <text class="action-btn-text">分享</text>
           </view>
           <view class="action-btn action-btn--print" @tap="showPrintPanel = !showPrintPanel">
@@ -658,6 +658,49 @@
             </view>
           </view>
         </view>
+
+        <!-- 分享海报面板 -->
+        <view v-if="showSharePanel" class="share-panel">
+          <view class="share-panel-header">
+            <text class="share-panel-title">分享海报</text>
+            <text class="share-panel-close" @tap="showSharePanel = false">×</text>
+          </view>
+
+          <!-- 海报模板选择 -->
+          <view class="share-row">
+            <text class="share-label">海报样式</text>
+            <view class="share-chips">
+              <text v-for="t in POSTER_TEMPLATES" :key="t.key" class="share-chip" :class="{ active: posterTemplate === t.key }" @tap="posterTemplate = t.key">{{ t.label }}</text>
+            </view>
+          </view>
+
+          <!-- 海报预览 -->
+          <view class="poster-preview-wrap">
+            <canvas id="posterPreviewCanvas" class="poster-preview-canvas" />
+          </view>
+
+          <!-- 操作按钮 -->
+          <view class="share-actions">
+            <view class="share-action-btn share-action-btn--poster" @tap="onSavePoster">
+              <text class="share-action-text">保存海报</text>
+            </view>
+            <view class="share-action-btn share-action-btn--direct" @tap="onShare">
+              <text class="share-action-text">直接分享</text>
+            </view>
+          </view>
+
+          <!-- 分享文案 -->
+          <view class="share-row">
+            <text class="share-label">分享文案</text>
+            <view class="share-chips">
+              <text v-for="c in COPY_STYLES" :key="c.key" class="share-chip" :class="{ active: copyStyle === c.key }" @tap="copyStyle = c.key">{{ c.label }}</text>
+            </view>
+          </view>
+          <view class="share-copy-box" @tap="onCopyShareText">
+            <text class="share-copy-text">{{ shareText }}</text>
+            <text class="share-copy-hint">点击复制</text>
+          </view>
+        </view>
       </view>
     </view>
   </view>
@@ -665,6 +708,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import QRCode from 'qrcode'
 import type { PoemResult, CalligraphyFont, CardBackground, CardTemplate, Calligrapher, CalligraphyScript } from '@moyun/core'
 import {
   CALLIGRAPHY_FONTS,
@@ -1255,6 +1299,259 @@ const printOutputInfo = computed(() => {
 
   return { widthMm, heightMm, widthPx, heightPx, bleedPx, bleedMm }
 })
+
+// 分享海报
+const showSharePanel = ref(false)
+const posterTemplate = ref('xiaohongshu')
+const copyStyle = ref('xiaohongshu')
+
+interface PosterTemplate { key: string; label: string; width: number; height: number; desc: string }
+const POSTER_TEMPLATES: PosterTemplate[] = [
+  { key: 'xiaohongshu', label: '小红书', width: 1080, height: 1440, desc: '3:4 竖版' },
+  { key: 'wechat', label: '朋友圈', width: 1080, height: 1080, desc: '1:1 方形' },
+  { key: 'weibo', label: '微博', width: 1080, height: 720, desc: '3:2 横版' },
+  { key: 'story', label: '故事', width: 1080, height: 1920, desc: '9:16 全屏' },
+]
+
+const COPY_STYLES = [
+  { key: 'xiaohongshu', label: '小红书风' },
+  { key: 'wechat', label: '朋友圈风' },
+  { key: 'weibo', label: '微博风' },
+  { key: 'plain', label: '纯文字' },
+]
+
+const shareText = computed(() => {
+  const p = poem.value
+  const lines = p.content.join('，')
+  const tags = '#AI作诗 #墨韵 #书法 #诗词'
+  switch (copyStyle.value) {
+    case 'xiaohongshu':
+      return `🖌️ 墨韵AI · 一念成诗\n\n「${lines}」\n——《${p.title}》\n\n${p.translation}\n\n✨ 每个人心中都有一首诗\n用AI把你的故事写成诗篇\n\n${tags} #中国风 #传统文化`
+    case 'wechat':
+      return `「${lines}」——《${p.title}》\n\n${p.translation}\n\n—— 墨韵AI · moyun.art`
+    case 'weibo':
+      return `【墨韵AI·一念成诗】「${lines}」——《${p.title}》 ${p.translation} ${tags}`
+    case 'plain':
+      return `《${p.title}》\n${p.content.join('\n')}\n\n${p.translation}\n\n—— 墨韵AI · moyun.art`
+    default:
+      return ''
+  }
+})
+
+let posterQrDataUrl: string | null = null
+
+async function ensureQRCode(): Promise<string> {
+  if (posterQrDataUrl) return posterQrDataUrl
+  posterQrDataUrl = await QRCode.toDataURL('https://moyun.art', {
+    width: 200, margin: 1, color: { dark: '#2c2c2e', light: '#ffffff00' },
+    errorCorrectionLevel: 'M',
+  })
+  return posterQrDataUrl
+}
+
+async function renderPoster(): Promise<HTMLCanvasElement | null> {
+  const tmpl = POSTER_TEMPLATES.find(t => t.key === posterTemplate.value) || POSTER_TEMPLATES[0]
+  const W = tmpl.width, H = tmpl.height
+  const canvas = document.createElement('canvas')
+  canvas.width = W; canvas.height = H
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+
+  // 背景渐变
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, H)
+  bgGrad.addColorStop(0, '#f7f3ee')
+  bgGrad.addColorStop(0.5, '#f0ebe3')
+  bgGrad.addColorStop(1, '#e8e0d4')
+  ctx.fillStyle = bgGrad
+  ctx.fillRect(0, 0, W, H)
+
+  // 底部纹理装饰条
+  ctx.fillStyle = 'rgba(91, 127, 149, 0.06)'
+  ctx.fillRect(0, H - 200, W, 200)
+
+  // 顶部品牌标识
+  await ensureFontReady(currentFont.value)
+  ctx.save()
+  ctx.font = '600 28px "LXGW WenKai", "Ma Shan Zheng", serif'
+  ctx.fillStyle = '#5b7f95'
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'top'
+  ctx.fillText('墨韵AI · 一念成诗', 48, 40)
+  ctx.restore()
+
+  // 顶部分隔线
+  ctx.strokeStyle = 'rgba(91, 127, 149, 0.2)'
+  ctx.lineWidth = 1
+  ctx.beginPath(); ctx.moveTo(48, 80); ctx.lineTo(W - 48, 80); ctx.stroke()
+
+  // 书法卡片区域（居中）
+  const cardResult = await exportWithMount(2)
+  if (cardResult) {
+    const img = await loadImage(URL.createObjectURL(cardResult.blob))
+    const cardAreaTop = 100
+    const cardAreaH = H - 320
+    const cardAreaW = W - 96
+
+    const imgRatio = img.width / img.height
+    const areaRatio = cardAreaW / cardAreaH
+    let drawW: number, drawH: number
+    if (imgRatio > areaRatio) {
+      drawW = cardAreaW; drawH = cardAreaW / imgRatio
+    } else {
+      drawH = cardAreaH; drawW = cardAreaH * imgRatio
+    }
+    const dx = (W - drawW) / 2
+    const dy = cardAreaTop + (cardAreaH - drawH) / 2
+
+    // 卡片阴影
+    ctx.save()
+    ctx.shadowColor = 'rgba(0,0,0,0.12)'
+    ctx.shadowBlur = 24
+    ctx.shadowOffsetY = 8
+    ctx.drawImage(img, dx, dy, drawW, drawH)
+    ctx.restore()
+    URL.revokeObjectURL(img.src)
+  }
+
+  // 底部信息区
+  const footerY = H - 180
+  const p = poem.value
+
+  // 诗词标题
+  ctx.save()
+  ctx.font = '600 26px "LXGW WenKai", "Ma Shan Zheng", serif'
+  ctx.fillStyle = '#2c2c2e'
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'top'
+  ctx.fillText(`《${p.title}》`, 48, footerY)
+  ctx.restore()
+
+  // 诗词内容（一行展示）
+  ctx.save()
+  ctx.font = '20px "LXGW WenKai", serif'
+  ctx.fillStyle = 'rgba(44,44,46,0.65)'
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'top'
+  const poemLine = p.content.join('  ')
+  const maxTextW = W - 260
+  let displayLine = poemLine
+  if (ctx.measureText(poemLine).width > maxTextW) {
+    while (ctx.measureText(displayLine + '…').width > maxTextW && displayLine.length > 0) {
+      displayLine = displayLine.slice(0, -1)
+    }
+    displayLine += '…'
+  }
+  ctx.fillText(displayLine, 48, footerY + 40)
+  ctx.restore()
+
+  // 译文
+  ctx.save()
+  ctx.font = '16px "LXGW WenKai", sans-serif'
+  ctx.fillStyle = 'rgba(44,44,46,0.45)'
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'top'
+  let transLine = p.translation
+  const maxTransW = W - 260
+  if (ctx.measureText(transLine).width > maxTransW) {
+    while (ctx.measureText(transLine + '…').width > maxTransW && transLine.length > 0) {
+      transLine = transLine.slice(0, -1)
+    }
+    transLine += '…'
+  }
+  ctx.fillText(transLine, 48, footerY + 72)
+  ctx.restore()
+
+  // 二维码
+  const qrUrl = await ensureQRCode()
+  const qrImg = await loadImage(qrUrl)
+  const qrSize = 100
+  ctx.drawImage(qrImg, W - 48 - qrSize, footerY - 10, qrSize, qrSize)
+
+  // 二维码下方提示
+  ctx.save()
+  ctx.font = '12px sans-serif'
+  ctx.fillStyle = 'rgba(44,44,46,0.35)'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'top'
+  ctx.fillText('扫码体验', W - 48 - qrSize / 2, footerY + qrSize)
+  ctx.restore()
+
+  // 底部品牌
+  ctx.save()
+  ctx.font = '14px "LXGW WenKai", sans-serif'
+  ctx.fillStyle = 'rgba(91, 127, 149, 0.5)'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'bottom'
+  ctx.fillText('moyun.art · 用AI把你的故事写成诗篇', W / 2, H - 24)
+  ctx.restore()
+
+  return canvas
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.src = src
+  })
+}
+
+async function onSavePoster() {
+  uni.showLoading({ title: '生成海报中...' })
+  const canvas = await renderPoster()
+  uni.hideLoading()
+  if (!canvas) { uni.showToast({ title: '海报生成失败', icon: 'none' }); return }
+
+  canvas.toBlob((blob) => {
+    if (!blob) return
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const tmpl = POSTER_TEMPLATES.find(t => t.key === posterTemplate.value)
+    link.download = `墨韵_${poem.value.title}_${tmpl?.label || '海报'}.png`
+    link.href = url
+    link.click()
+    URL.revokeObjectURL(url)
+    incrementShareCount()
+    uni.showToast({ title: '海报已保存', icon: 'success' })
+  }, 'image/png')
+}
+
+async function updatePosterPreview() {
+  const previewCanvas = document.getElementById('posterPreviewCanvas') as HTMLCanvasElement
+  if (!previewCanvas) return
+
+  const canvas = await renderPoster()
+  if (!canvas) return
+
+  const tmpl = POSTER_TEMPLATES.find(t => t.key === posterTemplate.value) || POSTER_TEMPLATES[0]
+  const maxPreviewW = 320
+  const previewScale = maxPreviewW / tmpl.width
+  previewCanvas.width = tmpl.width * previewScale
+  previewCanvas.height = tmpl.height * previewScale
+  previewCanvas.style.width = `${previewCanvas.width}px`
+  previewCanvas.style.height = `${previewCanvas.height}px`
+
+  const pCtx = previewCanvas.getContext('2d')
+  if (pCtx) {
+    pCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height)
+  }
+}
+
+function onCopyShareText() {
+  const text = shareText.value
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => {
+      uni.showToast({ title: '文案已复制', icon: 'success' })
+    })
+  } else {
+    const ta = document.createElement('textarea')
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'
+    document.body.appendChild(ta); ta.select()
+    document.execCommand('copy'); document.body.removeChild(ta)
+    uni.showToast({ title: '文案已复制', icon: 'success' })
+  }
+}
 
 function toggle3DGrid() {
   show3DGrid.value = !show3DGrid.value
@@ -3093,6 +3390,13 @@ let threeBuildFrame: ((mount: string) => void) | null = null
 watch(() => currentMount.value, (val) => {
   if (threeBuildFrame && (preview3DMode.value === 'scene' || preview3DMode.value === '3d')) {
     threeBuildFrame(val)
+  }
+})
+
+watch([showSharePanel, posterTemplate], async () => {
+  if (showSharePanel.value) {
+    await nextTick()
+    updatePosterPreview()
   }
 })
 
@@ -5626,6 +5930,98 @@ $breakpoint: 768px;
   font-family: $font-calligraphy;
 }
 
+/* ── 分享海报面板 ── */
+.share-panel {
+  background: var(--c-paper-card);
+  border: 1px solid var(--c-ink-08);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+.share-panel-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--c-ink-08);
+}
+.share-panel-title {
+  font-family: $font-calligraphy;
+  font-size: 16px; font-weight: 600; letter-spacing: 2px;
+  color: var(--c-ink-85);
+}
+.share-panel-close {
+  font-size: 20px; color: var(--c-ink-45); cursor: pointer;
+  width: 28px; height: 28px; text-align: center; line-height: 28px;
+  border-radius: 50%;
+  &:hover { background: var(--c-ink-06); }
+}
+.share-row {
+  margin-bottom: 14px;
+}
+.share-label {
+  display: block; font-size: 13px; color: var(--c-ink-65);
+  margin-bottom: 8px; letter-spacing: 1px;
+}
+.share-chips {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.share-chip {
+  padding: 5px 14px; border-radius: 16px; font-size: 12px;
+  background: var(--c-ink-06); color: var(--c-ink-65);
+  cursor: pointer; transition: all 0.2s; letter-spacing: 0.5px;
+  border: 1px solid transparent;
+  &.active {
+    background: rgba(91, 127, 149, 0.12);
+    color: #5b7f95;
+    border-color: rgba(91, 127, 149, 0.3);
+    font-weight: 500;
+  }
+}
+.poster-preview-wrap {
+  display: flex; justify-content: center; align-items: center;
+  padding: 16px 0; min-height: 200px;
+  background: var(--c-ink-04); border-radius: 8px;
+  margin-bottom: 14px;
+}
+.poster-preview-canvas {
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  max-width: 100%;
+}
+.share-actions {
+  display: flex; gap: 10px; margin-bottom: 16px;
+}
+.share-action-btn {
+  flex: 1; text-align: center;
+  padding: 12px 0; border-radius: 8px;
+  cursor: pointer; transition: opacity 0.2s;
+  &:active { opacity: 0.85; }
+  &--poster {
+    background: linear-gradient(135deg, #c06040, #a04828);
+  }
+  &--direct {
+    background: linear-gradient(135deg, #5b7f95, #4a6a7e);
+  }
+}
+.share-action-text {
+  font-size: 14px; color: #fff; letter-spacing: 1px;
+  font-family: $font-calligraphy;
+}
+.share-copy-box {
+  background: var(--c-ink-04); border-radius: 8px;
+  padding: 14px 16px; cursor: pointer;
+  position: relative; transition: background 0.2s;
+  &:active { background: var(--c-ink-08); }
+}
+.share-copy-text {
+  display: block; font-size: 13px; color: var(--c-ink-65);
+  line-height: 1.8; white-space: pre-wrap; word-break: break-all;
+}
+.share-copy-hint {
+  display: block; text-align: right; margin-top: 8px;
+  font-size: 11px; color: var(--c-ink-35); letter-spacing: 1px;
+}
+
 .action-btn-text {
   font-family: $font-calligraphy;
   font-size: 14px;
@@ -5735,6 +6131,23 @@ $breakpoint: 768px;
   }
   .print-info { background: rgba(232, 228, 223, 0.04); }
   .print-info-text { color: rgba(232, 228, 223, 0.55); }
+
+  .share-panel {
+    background: var(--c-paper-card);
+    border-color: rgba(232, 228, 223, 0.08);
+  }
+  .share-chip {
+    background: rgba(232, 228, 223, 0.06);
+    color: rgba(232, 228, 223, 0.65);
+    &.active {
+      background: rgba(122, 168, 194, 0.15);
+      color: #7aa8c2;
+      border-color: rgba(122, 168, 194, 0.25);
+    }
+  }
+  .poster-preview-wrap { background: rgba(232, 228, 223, 0.04); }
+  .share-copy-box { background: rgba(232, 228, 223, 0.04); }
+  .share-copy-text { color: rgba(232, 228, 223, 0.65); }
 
   /* 折叠卡片 */
   .ink-card {
