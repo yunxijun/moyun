@@ -377,6 +377,7 @@ import FloatingNav from '../../components/FloatingNav.vue'
 import { useTheme } from '../../composables/useTheme'
 import { CALLIGRAPHY_FONTS, getFontsByScript } from '@moyun/core'
 import type { CalligraphyFont } from '@moyun/core'
+import { API_BASE_URL } from '../../utils/api'
 
 interface PoemRecord {
   id: string
@@ -485,7 +486,7 @@ function getVisitorId(): string {
 /* ── 数据加载 ── */
 async function loadProfile() {
   try {
-    const resp = await fetch('http://localhost:3001/api/user/profile', {
+    const resp = await fetch(`${API_BASE_URL}/api/user/profile`, {
       headers: { 'x-visitor-id': getVisitorId() },
     })
     const data = await resp.json()
@@ -502,7 +503,7 @@ async function loadProfile() {
 
 async function loadHistory() {
   try {
-    const resp = await fetch('http://localhost:3001/api/user/history', {
+    const resp = await fetch(`${API_BASE_URL}/api/user/history`, {
       headers: { 'x-visitor-id': getVisitorId() },
     })
     const data = await resp.json()

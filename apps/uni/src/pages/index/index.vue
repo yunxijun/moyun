@@ -352,6 +352,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import FloatingNav from '../../components/FloatingNav.vue'
+import { API_BASE_URL } from '../../utils/api'
 
 const dailyPoem = ref('山高月小，水落石出')
 
@@ -550,7 +551,7 @@ const quotaLimit = ref(10)
 
 async function fetchQuota() {
   try {
-    const resp = await fetch('http://localhost:3001/api/poem/quota', {
+    const resp = await fetch(`${API_BASE_URL}/api/poem/quota`, {
       headers: { 'x-visitor-id': getVisitorId() },
     })
     const data = await resp.json()
@@ -711,7 +712,7 @@ async function onGenerate() {
     }
 
     // 文字作诗 —— 流式
-    const resp = await fetch('http://localhost:3001/api/poem/generate-stream', {
+    const resp = await fetch(`${API_BASE_URL}/api/poem/generate-stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -803,7 +804,7 @@ async function onIdentify() {
   streamingDone.value = false
 
   try {
-    const resp = await fetch('http://localhost:3001/api/poem/identify', {
+    const resp = await fetch(`${API_BASE_URL}/api/poem/identify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

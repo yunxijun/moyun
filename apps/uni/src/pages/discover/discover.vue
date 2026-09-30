@@ -114,6 +114,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import FloatingNav from '../../components/FloatingNav.vue'
+import { API_BASE_URL } from '../../utils/api'
 
 interface PoemRecord {
   id: string
@@ -149,7 +150,7 @@ function getCardTone(id: string): string {
 
 async function loadFeatured() {
   try {
-    const resp = await fetch('http://localhost:3001/api/user/featured')
+    const resp = await fetch(`${API_BASE_URL}/api/user/featured`)
     const data = await resp.json()
     if (data.success) featured.value = data.data.items
   } catch (_) {}
