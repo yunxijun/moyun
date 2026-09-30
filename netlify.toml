@@ -1,0 +1,18 @@
+[build]
+  command = "pnpm build:h5"
+  publish = "apps/uni/dist/build/h5"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# SPA 路由：所有路径回退到 index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# 静态资源长缓存
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
