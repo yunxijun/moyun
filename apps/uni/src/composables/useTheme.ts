@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 export type ThemeMode = 'light' | 'dark'
 
@@ -31,11 +31,11 @@ export function useTheme() {
     current.value = mode
   }
 
+  const isDark = computed(() => current.value === 'dark')
+
   return {
     theme: current,
-    isDark: {
-      get value() { return current.value === 'dark' },
-    },
+    isDark,
     toggle,
     set,
   }
