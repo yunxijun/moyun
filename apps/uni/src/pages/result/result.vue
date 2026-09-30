@@ -16,7 +16,7 @@
     </view>
 
     <!-- 主内容：三栏布局（卡片 | 控制 | 诗词） -->
-    <view class="main-layout" ref="layoutRef">
+    <view class="main-layout" :class="{ 'share-mode': showSharePanel && isMobileResult }" ref="layoutRef">
       <!-- 左栏：书法卡片预览 -->
       <view class="panel panel-left" :style="panelLeftStyle">
         <!-- 预览控制栏（顶部） -->
@@ -3535,6 +3535,14 @@ watch([showSharePanel, posterTemplate], async () => {
     }
     await nextTick()
     updatePosterPreview()
+    // 手机端：滚动到分享面板
+    if (isMobileResult.value) {
+      await nextTick()
+      setTimeout(() => {
+        const el = document.querySelector('.share-panel')
+        el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
+    }
   }
 })
 
@@ -6459,7 +6467,42 @@ $breakpoint: 768px;
     flex: none !important;
   }
 
-  // 预览区：sticky 吸顶
+  // 预览区：sticky 吸顶（分享模式时收起）
+  // 操作栏手机端吸底
+  .actions-bar {
+    position: sticky !important;
+    bottom: 0;
+    z-index: 12;
+    background: var(--c-paper-card) !important;
+    border-top: 1px solid var(--c-ink-06);
+    border-radius: 0 !important;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+  }
+  .action-btn {
+    min-width: 0;
+    padding: 10px 0 !important;
+    flex-shrink: 0;
+    flex: 1 0 auto !important;
+  }
+  .action-btn-text {
+    font-size: 12px !important;
+    letter-spacing: 1px !important;
+    white-space: nowrap;
+  }
+
+  // 分享模式：预览区取消吸顶，让整个页面可以自由滚动到分享面板
+  .share-mode .panel-left {
+    position: relative !important;
+  }
+
   .panel-left {
     position: sticky !important;
     top: 0;
